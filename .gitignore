@@ -1,0 +1,16 @@
+# PHP
+/vendor/
+composer.lock
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
