@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rodeo Drive CRM · Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+  <div class="login-card">
+    <div class="brand">
+      <div class="logo-wrapper" id="logoContainer">
+        <!-- Your logo will go here - replace the SVG with your image -->
+        <img src="your-logo-path.png" alt="Rodeo Drive CRM Logo" class="company-logo" id="companyLogo">
+        <!-- Default logo (hidden if you add your own) -->
+        <svg class="logo-svg default-logo" viewBox="0 0 60 60" fill="none">
+          <path d="M30 10L45 20V40L30 50L15 40V20L30 10Z" stroke="currentColor" stroke-width="2.5"/>
+          <path d="M30 22L38 27V37L30 42L22 37V27L30 22Z" stroke="currentColor" stroke-width="2"/>
+          <path d="M30 30L34 32.5V37.5L30 40L26 37.5V32.5L30 30Z" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M30 10V18M45 20L39 24M15 20L21 24M30 50V42M45 40L39 36M15 40L21 36" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.6"/>
+        </svg>
+      </div>
+      <h1 class="company-title">Rodeo Drive CRM</h1>
+      <div class="company-sub">Enterprise Management System</div>
+    </div>
+
+    <form class="login-form" id="loginForm">
+      <div class="input-group">
+        <label class="input-label" for="email">Email address</label>
+        <input type="email" id="email" class="input-field" placeholder="Enter your email" autocomplete="off">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="password">Password</label>
+        <input type="password" id="password" class="input-field" placeholder="••••••••">
+      </div>
+
+      <!-- Dynamic error message container -->
+      <div class="error-message" id="errorContainer"></div>
+
+      <button type="submit" class="login-button">Sign in to dashboard</button>
+    </form>
+
+    <div class="demo-hint">
+      <span>demo: any valid email / password (min 4 chars)</span>
+    </div>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>
