@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rodeo Drive CRM · Department & Role Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="department-role.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-sitemap"></i> Department & Role Management</h1>
+            <p class="subtitle">Create and manage departments and roles for your organization</p>
+        </header>
+        
+        <div class="main-section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-list"></i> Departments & Roles</h2>
+                <button class="btn btn-primary" id="addDeptBtn">
+                    <i class="fas fa-plus-circle"></i> Add New Department
+                </button>
+            </div>
+            
+            <!-- Stats Bar -->
+            <div class="stats-bar" id="statsBar">
+                <!-- Stats will be dynamically updated -->
+            </div>
+            
+            <div id="departmentsList">
+                <!-- Departments will be dynamically loaded here -->
+                <div class="empty-state">
+                    <i class="fas fa-building"></i>
+                    <h3>No Departments Yet</h3>
+                    <p>Click "Add New Department" to create your first department</p>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Rodeo Drive CRM · Department & Role Management</p>
+        </footer>
+    </div>
+    
+    <!-- Add Department Modal -->
+    <div id="addDeptModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-building"></i> Add New Department</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="addDeptForm">
+                <div class="form-group">
+                    <label for="deptName">Department Name *</label>
+                    <input type="text" id="deptName" placeholder="Enter department name" required>
+                </div>
+                <div class="form-group">
+                    <label for="deptDescription">Description</label>
+                    <textarea id="deptDescription" rows="4" placeholder="Enter department description"></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Add Department</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add Role Modal -->
+    <div id="addRoleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-user-tag"></i> Add New Role</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="addRoleForm">
+                <input type="hidden" id="roleDeptId">
+                <div class="form-group">
+                    <label for="roleName">Role Name *</label>
+                    <input type="text" id="roleName" placeholder="Enter role name" required>
+                </div>
+                <div class="form-group">
+                    <label for="roleDescription">Role Description</label>
+                    <textarea id="roleDescription" rows="4" placeholder="Enter role description"></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-success">Add Role</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit Department Modal -->
+    <div id="editDeptModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-edit"></i> Edit Department</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="editDeptForm">
+                <input type="hidden" id="editDeptId">
+                <div class="form-group">
+                    <label for="editDeptName">Department Name *</label>
+                    <input type="text" id="editDeptName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDeptDescription">Description</label>
+                    <textarea id="editDeptDescription" rows="4"></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit Role Modal -->
+    <div id="editRoleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-edit"></i> Edit Role</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="editRoleForm">
+                <input type="hidden" id="editRoleId">
+                <input type="hidden" id="editRoleDeptId">
+                <div class="form-group">
+                    <label for="editRoleName">Role Name *</label>
+                    <input type="text" id="editRoleName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editRoleDescription">Role Description</label>
+                    <textarea id="editRoleDescription" rows="4"></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Alert Popup -->
+    <div id="alertPopup" class="alert-popup">
+        <div class="alert-content">
+            <div class="alert-header" id="alertHeader">
+                <div class="alert-icon" id="alertIcon"></div>
+                <div class="alert-title" id="alertTitle"></div>
+            </div>
+            <div class="alert-body">
+                <div class="alert-message" id="alertMessage"></div>
+                <div class="alert-actions" id="alertActions">
+                    <!-- Action buttons will be added dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="department-role.js"></script>
+</body>
+</html>

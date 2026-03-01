@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rodeo Drive CRM · Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <div class="login-container">
+        <!-- Left side - Gradient Brand Area -->
+        <div class="brand-section">
+            <div class="brand-content">
+                <div class="brand-logo">
+                    <div class="logo-icon">RD</div>
+                </div>
+                <h1 class="brand-title">Rodeo Drive CRM</h1>
+                <p class="brand-subtitle">Luxury retail management system</p>
+                <div class="brand-features">
+                    <div class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Customer Management</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Order Processing</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Inventory Tracking</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Analytics Dashboard</span>
+                    </div>
+                </div>
+            </div>
+            <div class="brand-footer">
+                <p>© 2024 Rodeo Drive CRM. All rights reserved.</p>
+            </div>
+        </div>
+
+        <!-- Right side - Login Form -->
+        <div class="login-section">
+            <div class="login-card">
+                <!-- Company Logo Area -->
+                <div class="company-logo-container" id="logoContainer">
+                    <img src="assets/company-logo.png" alt="Rodeo Drive CRM Logo" class="company-logo" id="companyLogo" onerror="this.style.display='none'; document.querySelector('.default-logo').style.display='flex'">
+                    <div class="default-logo">
+                        <span>RD</span>
+                    </div>
+                </div>
+
+                <h2 class="welcome-text">Welcome back</h2>
+                <p class="welcome-subtext">Please enter your credentials to access your account</p>
+
+                <form class="login-form" id="loginForm">
+                    <div class="input-group">
+                        <label class="input-label" for="email">Email address</label>
+                        <input type="email" id="email" class="input-field" placeholder="Enter your email" autocomplete="off">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="password">Password</label>
+                        <input type="password" id="password" class="input-field" placeholder="••••••••">
+                    </div>
+
+                    <!-- Dynamic error message container -->
+                    <div class="error-message" id="errorContainer"></div>
+
+                    <button type="submit" class="login-button">Sign in to dashboard</button>
+                </form>
+
+                <div class="demo-hint">
+                    <span class="demo-badge">DEMO</span>
+                    <span>Use any email / password (min 4 chars)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>

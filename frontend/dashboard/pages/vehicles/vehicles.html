@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Management · Vehicle Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="vehicles.css">
+</head>
+<body>
+<div class="container">
+    <header class="app-header">
+        <h1><i class="fas fa-car"></i> Vehicle Management</h1>
+        <p class="subtitle">Manage vehicles, service history, and ownership details</p>
+    </header>
+
+    <div class="main-section">
+        <!-- SEARCH bar -->
+        <div class="search-section">
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="smartSearchInput" class="smart-search-input" placeholder="Search by ID, make, model, plate, owner..." autocomplete="off">
+            </div>
+            <div class="search-stats" id="searchStats">Showing all vehicles</div>
+        </div>
+
+        <!-- STATS bar -->
+        <div class="stats-bar" id="statsBar">
+            <div class="stat-item"><div class="stat-value" id="totalVehicles">0</div><div class="stat-label">Total Vehicles</div></div>
+            <div class="stat-item"><div class="stat-value" id="totalServicesStat">0</div><div class="stat-label">Services</div></div>
+            <div class="stat-item"><div class="stat-value" id="uniqueOwners">0</div><div class="stat-label">Unique Owners</div></div>
+        </div>
+
+        <!-- section header with pagination & new vehicle -->
+        <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-list"></i> Vehicle Records</h2>
+            <div class="pagination-controls">
+                <div class="records-per-page">
+                    <label for="pageSizeSelect">Records per page:</label>
+                    <select id="pageSizeSelect" class="page-size-select">
+                        <option value="10">10</option><option value="20" selected>20</option><option value="50">50</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="newVehicleButton"><i class="fas fa-plus-circle"></i> Add Vehicle</button>
+            </div>
+        </div>
+
+        <!-- table wrapper with vehicles table -->
+        <div class="table-wrapper">
+            <table class="vehicles-table" id="vehiclesTable">
+                <thead><tr><th>Vehicle ID</th><th>Owned By</th><th>Make</th><th>Model</th><th>Year</th><th>Color</th><th>Plate Number</th><th>Services</th><th>Actions</th></tr></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <!-- empty state -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon"><i class="fas fa-car-side"></i></div>
+            <div class="empty-text">No matching vehicles</div>
+            <div class="empty-subtext">Try adjusting search or add new vehicle</div>
+        </div>
+
+        <!-- pagination -->
+        <div class="pagination" id="paginationContainer">
+            <button class="pagination-btn" id="prevPageBtn"><i class="fas fa-chevron-left"></i></button>
+            <div class="pagination-numbers" id="pageNumbers"></div>
+            <button class="pagination-btn" id="nextPageBtn"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        <p>Service Management System · Vehicle Management Module</p>
+    </footer>
+</div>
+
+<!-- FULL SCREEN DETAILS -->
+<div class="details-screen" id="detailsScreen">
+    <div class="details-header">
+        <h2><i class="fas fa-car"></i> Vehicle Details – <span id="detailsVehicleId"></span></h2>
+        <button class="btn-close-details" id="closeDetailsScreen"><i class="fas fa-times"></i> Close Details</button>
+    </div>
+    <div class="details-body" id="detailsBody">
+        <div class="details-grid" id="detailsGrid"></div>
+    </div>
+</div>
+
+<!-- ADD VEHICLE MODAL -->
+<div class="modal" id="addVehicleModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-plus-circle"></i> Add New Vehicle</h3>
+            <button class="close-modal" id="closeModalBtn">&times;</button>
+        </div>
+        <form id="addVehicleForm">
+            <!-- Customer Selection/Verification -->
+            <div class="form-group">
+                <label>Customer ID <span style="color:red;">*</span></label>
+                <div class="customer-verify-section">
+                    <input type="text" id="newCustomerId" class="form-control" placeholder="Enter Customer ID" required>
+                    <button type="button" class="btn-verify" id="verifyCustomerBtn"><i class="fas fa-check-circle"></i> Verify</button>
+                </div>
+                <div class="customer-verified-info" id="customerVerifiedInfo">
+                    <i class="fas fa-check-circle" style="color: #27ae60;"></i> Customer verified: <strong id="verifiedCustomerName"></strong>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Make <span style="color:red;">*</span></label>
+                    <input type="text" id="vehicleMake" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Model <span style="color:red;">*</span></label>
+                    <input type="text" id="vehicleModel" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Year <span style="color:red;">*</span></label>
+                    <input type="number" id="vehicleYear" class="form-control" min="1900" max="2030" required>
+                </div>
+                <div class="form-group">
+                    <label>Color <span style="color:red;">*</span></label>
+                    <input type="text" id="vehicleColor" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Plate Number <span style="color:red;">*</span></label>
+                    <input type="text" id="vehiclePlate" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Vehicle Type</label>
+                    <select id="vehicleType" class="form-control">
+                        <option value="Sedan">Sedan</option>
+                        <option value="SUV">SUV</option>
+                        <option value="Hatchback">Hatchback</option>
+                        <option value="Truck">Truck</option>
+                        <option value="Coupe">Coupe</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>VIN (optional)</label>
+                <input type="text" id="vehicleVin" class="form-control" maxlength="17">
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn btn-success" id="saveVehicleBtn">Save Vehicle</button>
+                <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT VEHICLE MODAL -->
+<div class="modal" id="editVehicleModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-edit"></i> Edit Vehicle</h3>
+            <button class="close-modal" id="closeEditModalBtn">&times;</button>
+        </div>
+        <form id="editVehicleForm">
+            <input type="hidden" id="editVehicleId">
+            
+            <!-- Change Ownership -->
+            <div class="form-group">
+                <label>Change Ownership (Customer ID)</label>
+                <div class="customer-verify-section">
+                    <input type="text" id="editCustomerId" class="form-control" placeholder="Enter Customer ID">
+                    <button type="button" class="btn-verify" id="editVerifyCustomerBtn"><i class="fas fa-check-circle"></i> Verify</button>
+                </div>
+                <div class="customer-verified-info" id="editCustomerVerifiedInfo">
+                    <i class="fas fa-check-circle" style="color: #27ae60;"></i> Customer verified: <strong id="editVerifiedCustomerName"></strong>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Color</label>
+                    <input type="text" id="editVehicleColor" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Plate Number</label>
+                    <input type="text" id="editVehiclePlate" class="form-control">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Vehicle Type</label>
+                <select id="editVehicleType" class="form-control">
+                    <option value="Sedan">Sedan</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Hatchback">Hatchback</option>
+                    <option value="Truck">Truck</option>
+                    <option value="Coupe">Coupe</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+                <button type="button" class="btn btn-secondary" id="cancelEditModalBtn">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ADD SERVICE MODAL -->
+<div class="modal" id="addServiceModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-tasks"></i> Add Service Record</h3>
+            <button class="close-modal" id="closeServiceModalBtn">&times;</button>
+        </div>
+        <form id="addServiceForm">
+            <input type="hidden" id="serviceVehicleId">
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Order Type</label>
+                    <select id="serviceOrderType" class="form-control">
+                        <option value="New Job Order">New Job Order</option>
+                        <option value="Service Order">Service Order</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Work Status</label>
+                    <select id="serviceWorkStatus" class="form-control">
+                        <option value="New Request">New Request</option>
+                        <option value="Inprogress">In Progress</option>
+                        <option value="Quality Check">Quality Check</option>
+                        <option value="Ready">Ready</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Payment Status</label>
+                    <select id="servicePaymentStatus" class="form-control">
+                        <option value="Unpaid">Unpaid</option>
+                        <option value="Partially Paid">Partially Paid</option>
+                        <option value="Fully Paid">Fully Paid</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Total Cost (QAR)</label>
+                    <input type="number" id="serviceCost" class="form-control" step="0.01" min="0">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn btn-success" id="saveServiceBtn">Add Service</button>
+                <button type="button" class="btn btn-secondary" id="cancelServiceModalBtn">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- VIEW SERVICE DETAILS MODAL -->
+<div class="modal" id="serviceDetailsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-info-circle"></i> Service Details</h3>
+            <button class="close-modal" id="closeServiceDetailsBtn">&times;</button>
+        </div>
+        <div id="serviceDetailsContent" class="service-details-content">
+            <!-- Dynamic content will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<!-- ALERT POPUP -->
+<div class="alert-popup" id="alertPopup">
+    <div class="alert-content">
+        <div class="alert-header success" id="alertHeader">
+            <div class="alert-icon" id="alertIcon"></div>
+            <div class="alert-title" id="alertTitle"></div>
+        </div>
+        <div class="alert-body">
+            <div class="alert-message" id="alertMessage"></div>
+            <div class="alert-actions" id="alertActions"></div>
+        </div>
+    </div>
+</div>
+
+<script src="vehicles.js"></script>
+</body>
+</html>

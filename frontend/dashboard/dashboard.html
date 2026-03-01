@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rodeo Drive CRM · Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="main-layout">
+        <!-- Modern Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-area">
+                    <div class="logo-icon">RD</div>
+                    <span class="logo-text">Rodeo Drive CRM</span>
+                </div>
+            </div>
+            
+            <div class="user-info" id="userInfo">
+                <div class="user-avatar" id="userAvatar"></div>
+                <div class="user-details">
+                    <div class="user-name" id="userName"></div>
+                    <div class="user-role" id="userRole"></div>
+                </div>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">MAIN</div>
+                    <div class="nav-item active" data-page="overview">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-label">Overview</span>
+                    </div>
+                    <div class="nav-item" data-page="job-orders">
+                        <span class="nav-icon">📋</span>
+                        <span class="nav-label">Job Orders</span>
+                    </div>
+                    <div class="nav-item" data-page="inspection">
+                        <span class="nav-icon">🔍</span>
+                        <span class="nav-label">Inspection</span>
+                    </div>
+                    <div class="nav-item" data-page="service-execution">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-label">Service Execution</span>
+                    </div>
+                    <div class="nav-item" data-page="quality-check">
+                        <span class="nav-icon">✓</span>
+                        <span class="nav-label">Quality Check</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">FINANCE</div>
+                    <div class="nav-item" data-page="payment-invoice">
+                        <span class="nav-icon">💰</span>
+                        <span class="nav-label">Payment & Invoice</span>
+                    </div>
+                    <div class="nav-item" data-page="exit-permit">
+                        <span class="nav-icon">🚪</span>
+                        <span class="nav-label">Exit Permit</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">MANAGEMENT</div>
+                    <div class="nav-item" data-page="order-history">
+                        <span class="nav-icon">📅</span>
+                        <span class="nav-label">Order History</span>
+                    </div>
+                    <div class="nav-item" data-page="customers">
+                        <span class="nav-icon">👥</span>
+                        <span class="nav-label">Customers</span>
+                    </div>
+                    <div class="nav-item" data-page="vehicles">
+                        <span class="nav-icon">🚗</span>
+                        <span class="nav-label">Vehicles</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">ADMIN</div>
+                    <div class="nav-item" data-page="department-role">
+                        <span class="nav-icon">🏢</span>
+                        <span class="nav-label">Department & Role</span>
+                    </div>
+                    <div class="nav-item" data-page="system-users">
+                        <span class="nav-icon">👤</span>
+                        <span class="nav-label">System Users</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="logout-btn" id="logoutBtn">
+                <span>🚪</span>
+                <span>Logout</span>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-container" id="pageContainer">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Toggle sidebar button -->
+    <button class="toggle-sidebar-btn" onclick="toggleSidebar()">
+        ☰
+    </button>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
