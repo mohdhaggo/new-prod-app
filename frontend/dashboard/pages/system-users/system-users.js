@@ -2,20 +2,88 @@
 // USER MANAGEMENT SYSTEM - NO DEMO DATA
 // ============================================
 
+// Check authentication on page load
+(function checkAuth() {
+    const token = localStorage.getItem('auth_token');
+    const userData = localStorage.getItem('user');
+    
+    if (!token || !userData) {
+        // Redirect to login if not authenticated
+        if (window.top !== window.self) {
+            window.top.location.href = '../../../login.html';
+        } else {
+            window.location.href = '../../../login.html';
+        }
+        return;
+    }
+})();
+
 // Initialize empty users array
 let usersData = [];
 
-// Departments and roles
-const departments = [
-    "IT", "HR", "Finance", "Marketing", "Sales", 
-    "Operations", "Customer Support", "Research & Development"
-];
+// Departments and roles - will be populated from API
+let departments = [];
+let roles = [];
 
-const roles = [
-    "Administrator", "Manager", "Supervisor", "Team Lead", 
-    "Developer", "Accountant", "Marketing Manager", "Sales Executive",
-    "Support Specialist", "Analyst"
-];
+// API Service for fetching data
+const apiService = {
+    baseUrl: (() => {
+        // Handle both iframe and direct access contexts
+        if (window.location.port === '8080') {
+            return `http://${window.location.hostname}:8080/api`;
+        } else {
+            return '/backend/api';
+        }
+    })(),
+    
+    async getDepartments() {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`${this.baseUrl}/departments`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                console.error('Department fetch error:', response.status, response.statusText);
+                throw new Error('Failed to fetch departments');
+            }
+            const data = await response.json();
+            console.log('Departments fetched:', data.data);
+            return data.data || [];
+        } catch (error) {
+            console.error('Error fetching departments:', error);
+            return [];
+        }
+    },
+    
+    async getRoles() {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`${this.baseUrl}/roles`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                console.error('Roles fetch error:', response.status, response.statusText);
+                throw new Error('Failed to fetch roles');
+            }
+            const data = await response.json();
+            console.log('Roles fetched:', data.data);
+            return data.data || [];
+        } catch (error) {
+            console.error('Error fetching roles:', error);
+            return [];
+        }
+    }
+};
 
 // ============================================
 // APPLICATION STATE & CONFIGURATION
@@ -128,48 +196,62 @@ function sortUsersByEmployeeId() {
 // ============================================
 // INITIALIZATION
 // ============================================
-function initializeApp() {
+async function initializeApp() {
+    console.log('Initializing app...');
+    
     // Load users from localStorage
     loadUsersFromStorage();
     
-    // Populate department and role dropdowns
-    populateDropdowns();
+    // Populate department and role dropdowns from API
+    try {
+        await populateDropdowns();
+    } catch (error) {
+        console.error('Error populating dropdowns:', error);
+    }
+    
     populateLineManagerDropdowns();
     
-    // Set up event listeners
-    smartSearchInput.addEventListener('input', handleSearchInput);
-    createUserBtn.addEventListener('click', openCreateForm);
-    pageSizeSelect.addEventListener('change', handlePageSizeChange);
-    prevPageBtn.addEventListener('click', goToPrevPage);
-    nextPageBtn.addEventListener('click', goToNextPage);
-    closeDetailsScreen.addEventListener('click', closeDetailsView);
+    // Set up event listeners - these MUST be attached
+    console.log('Setting up event listeners...');
+    if (smartSearchInput) smartSearchInput.addEventListener('input', handleSearchInput);
+    if (createUserBtn) createUserBtn.addEventListener('click', openCreateForm);
+    if (pageSizeSelect) pageSizeSelect.addEventListener('change', handlePageSizeChange);
+    if (prevPageBtn) prevPageBtn.addEventListener('click', goToPrevPage);
+    if (nextPageBtn) nextPageBtn.addEventListener('click', goToNextPage);
+    if (closeDetailsScreen) closeDetailsScreen.addEventListener('click', closeDetailsView);
     
     // Create form event listeners
-    closeFormBtn.addEventListener('click', () => closeModal(userFormModal));
-    userForm.addEventListener('submit', saveUser);
+    if (closeFormBtn) closeFormBtn.addEventListener('click', () => closeModal(userFormModal));
+    if (userForm) userForm.addEventListener('submit', saveUser);
     
     // Edit form event listeners
-    closeEditFormBtn.addEventListener('click', () => closeModal(editUserModal));
-    editUserForm.addEventListener('submit', saveEditUser);
+    if (closeEditFormBtn) closeEditFormBtn.addEventListener('click', () => closeModal(editUserModal));
+    if (editUserForm) editUserForm.addEventListener('submit', saveEditUser);
     
     // Close modals when clicking outside
-    userFormModal.addEventListener('click', (e) => {
-        if (e.target === userFormModal) {
-            closeModal(userFormModal);
-        }
-    });
+    if (userFormModal) {
+        userFormModal.addEventListener('click', (e) => {
+            if (e.target === userFormModal) {
+                closeModal(userFormModal);
+            }
+        });
+    }
     
-    editUserModal.addEventListener('click', (e) => {
-        if (e.target === editUserModal) {
-            closeModal(editUserModal);
-        }
-    });
+    if (editUserModal) {
+        editUserModal.addEventListener('click', (e) => {
+            if (e.target === editUserModal) {
+                closeModal(editUserModal);
+            }
+        });
+    }
     
-    detailsScreen.addEventListener('click', (e) => {
-        if (e.target === detailsScreen) {
-            closeDetailsView();
-        }
-    });
+    if (detailsScreen) {
+        detailsScreen.addEventListener('click', (e) => {
+            if (e.target === detailsScreen) {
+                closeDetailsView();
+            }
+        });
+    }
     
     // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
@@ -205,23 +287,69 @@ function renderStats() {
 }
 
 // Populate department and role dropdowns
-function populateDropdowns() {
-    // Populate department dropdowns
-    [departmentSelect, editDepartmentSelect].forEach(select => {
-        select.innerHTML = '<option value="">Select Department</option>';
-        departments.forEach(dept => {
-            select.innerHTML += `<option value="${dept}">${dept}</option>`;
+async function populateDropdowns() {
+    try {
+        console.log('Starting populateDropdowns...');
+        
+        // Fetch departments from API if not already loaded
+        if (departments.length === 0) {
+            console.log('Fetching departments from API...');
+            departments = await apiService.getDepartments();
+            console.log('Departments loaded:', departments.length, 'items');
+        }
+        
+        // Fetch roles from API if not already loaded
+        if (roles.length === 0) {
+            console.log('Fetching roles from API...');
+            roles = await apiService.getRoles();
+            console.log('Roles loaded:', roles.length, 'items');
+        }
+        
+        // Verify select elements exist
+        if (!departmentSelect || !editDepartmentSelect) {
+            console.error('Department select elements not found');
+            return;
+        }
+        
+        if (!roleSelect || !editRoleSelect) {
+            console.error('Role select elements not found');
+            return;
+        }
+        
+        // Populate department dropdowns
+        console.log('Populating department dropdowns...');
+        [departmentSelect, editDepartmentSelect].forEach((select) => {
+            select.innerHTML = '<option value="">Select Department</option>';
+            departments.forEach(dept => {
+                const deptValue = typeof dept === 'object' ? dept.id : dept;
+                const deptName = typeof dept === 'object' ? dept.name : dept;
+                const option = document.createElement('option');
+                option.value = deptValue;
+                option.text = deptName;
+                select.appendChild(option);
+            });
         });
-    });
-    
-    // Populate role dropdowns
-    [roleSelect, editRoleSelect].forEach(select => {
-        select.innerHTML = '<option value="">Select Role</option>';
-        roles.forEach(role => {
-            select.innerHTML += `<option value="${role}">${role}</option>`;
+        
+        // Populate role dropdowns
+        console.log('Populating role dropdowns...');
+        [roleSelect, editRoleSelect].forEach((select) => {
+            select.innerHTML = '<option value="">Select Role</option>';
+            roles.forEach(role => {
+                const roleValue = typeof role === 'object' ? role.id : role;
+                const roleName = typeof role === 'object' ? role.name : role;
+                const option = document.createElement('option');
+                option.value = roleValue;
+                option.text = roleName;
+                select.appendChild(option);
+            });
         });
-    });
+        
+        console.log('populateDropdowns completed successfully');
+    } catch (error) {
+        console.error('Error in populateDropdowns:', error);
+    }
 }
+
 
 // Populate line manager dropdowns with existing users
 function populateLineManagerDropdowns() {
@@ -822,7 +950,13 @@ function resetPassword(userId) {
 // ============================================
 // CREATE FORM FUNCTIONS
 // ============================================
-function openCreateForm() {
+async function openCreateForm() {
+    try {
+        await populateDropdowns();
+    } catch (error) {
+        console.error('Error refreshing dropdowns before create form:', error);
+    }
+
     resetForm();
     // Refresh line manager dropdown with latest users
     populateLineManagerDropdowns();
@@ -995,9 +1129,15 @@ function resetForm() {
 // ============================================
 // EDIT FORM FUNCTIONS
 // ============================================
-function openEditForm(userId) {
+async function openEditForm(userId) {
     const user = usersData.find(u => u.id === userId);
     if (!user) return;
+
+    try {
+        await populateDropdowns();
+    } catch (error) {
+        console.error('Error refreshing dropdowns before edit form:', error);
+    }
     
     // Refresh line manager dropdown with latest users
     populateLineManagerDropdowns();

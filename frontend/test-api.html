@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - Rodeo Drive CRM</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f5f5f5; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        h1 { color: #333; margin-bottom: 20px; }
+        .test-section { 
+            background: #f9f9f9; 
+            padding: 20px; 
+            border-radius: 6px; 
+            margin-bottom: 20px; 
+            border-left: 4px solid #4f46e5; 
+        }
+        .test-section h2 { color: #4f46e5; margin-bottom: 10px; font-size: 18px; }
+        button { 
+            background: #4f46e5; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 5px; 
+            font-size: 14px; 
+        }
+        button:hover { background: #4338ca; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result { 
+            background: #fff; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            margin-top: 10px; 
+            font-family: monospace; 
+            font-size: 12px; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            max-height: 300px; 
+            overflow-y: auto; 
+        }
+        .success { color: #10b981; font-weight: bold; }
+        .error { color: #ef4444; font-weight: bold; }
+        .info { color: #3b82f6; }
+        .status { 
+            display: inline-block; 
+            padding: 4px 8px; 
+            border-radius: 3px; 
+            font-size: 12px; 
+            font-weight: 600; 
+            margin-left: 10px; 
+        }
+        .status.online { background: #d1fae5; color: #065f46; }
+        .status.offline { background: #fee2e2; color: #991b1b; }
+        input { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            font-size: 14px; 
+        }
+        .config-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .config-info code {
+            background: #dbeafe;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Rodeo Drive CRM - API Connection Test</h1>
+        
+        <div class="config-info">
+            <strong>📡 API Configuration</strong><br>
+            Base URL: <code id="apiUrl"></code>
+            <span class="status offline" id="apiStatus">Checking...</span>
+        </div>
+
+        <!-- Connection Test -->
+        <div class="test-section">
+            <h2>1. Test Backend Connection</h2>
+            <p>Check if the backend API is running and accessible</p>
+            <button onclick="testConnection()">Test Connection</button>
+            <div id="connectionResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Login Test -->
+        <div class="test-section">
+            <h2>2. Test Login</h2>
+            <p>Test authentication with the backend API</p>
+            <input type="email" id="testEmail" placeholder="Email (e.g., admin@rodeodrive.com)" value="admin@rodeodrive.com">
+            <input type="password" id="testPassword" placeholder="Password" value="admin123">
+            <button onclick="testLogin()">Test Login</button>
+            <button onclick="testLogout()">Test Logout</button>
+            <div id="loginResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Current User -->
+        <div class="test-section">
+            <h2>3. Check Current User</h2>
+            <p>Verify if user is authenticated and get user info</p>
+            <button onclick="checkCurrentUser()">Check User</button>
+            <div id="userResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Navigation Test -->
+        <div class="test-section">
+            <h2>4. Test Navigation</h2>
+            <p>Test if navigation to dashboard works correctly</p>
+            <button onclick="testNavigation()">Navigate to Dashboard</button>
+            <button onclick="testNavigationBack()">Go to Login Page</button>
+        </div>
+
+        <!-- Instructions -->
+        <div class="test-section" style="border-left-color: #f59e0b;">
+            <h2>📋 Quick Start Instructions</h2>
+            <ol style="margin-left: 20px; line-height: 1.8;">
+                <li>Make sure backend is running: <code>cd backend && php -S localhost:8080</code></li>
+                <li>Click "Test Connection" to verify backend is accessible</li>
+                <li>Click "Test Login" to authenticate (default: admin@rodeodrive.com / admin123)</li>
+                <li>Check if login sets the token correctly</li>
+                <li>Try navigating to the dashboard</li>
+            </ol>
+        </div>
+    </div>
+
+    <script type="module">
+        import apiService from './api-service.js';
+
+        // Determine API URL dynamically
+        const API_BASE_URL = window.location.hostname === 'localhost' 
+            ? (window.location.port === '8080' 
+                ? 'http://localhost:8080/api'
+                : 'http://localhost:8080/backend/api')
+            : '/backend/api';
+
+        // Display API URL
+        document.getElementById('apiUrl').textContent = API_BASE_URL;
+
+        // Make functions available globally
+        window.apiService = apiService;
+
+        window.testConnection = async function() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="info">⏳ Testing connection...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'OPTIONS'
+                });
+                
+                if (response.ok || response.status === 200) {
+                    resultDiv.innerHTML = '<span class="success">✓ Backend is running and accessible!</span>';
+                    document.getElementById('apiStatus').textContent = 'Online';
+                    document.getElementById('apiStatus').className = 'status online';
+                } else {
+                    throw new Error('Backend not responding');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ Backend connection failed</span>\n\nError: ${error.message}\n\nMake sure backend is running:\ncd backend\nphp -S localhost:8080`;
+                document.getElementById('apiStatus').textContent = 'Offline';
+                document.getElementById('apiStatus').className = 'status offline';
+            }
+        };
+
+        window.testLogin = async function() {
+            const resultDiv = document.getElementById('loginResult');
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="info">⏳ Attempting login...</span>';
+
+            try {
+                const response = await apiService.login(email, password);
+                
+                if (response.success) {
+                    resultDiv.innerHTML = `<span class="success">✓ Login successful!</span>\n\n${JSON.stringify(response.data, null, 2)}`;
+                    document.getElementById('apiStatus').textContent = 'Authenticated';
+                    document.getElementById('apiStatus').className = 'status online';
+                } else {
+                    resultDiv.innerHTML = `<span class="error">✗ Login failed</span>\n\n${JSON.stringify(response, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ Login error</span>\n\nError: ${error.message}\n\nStack: ${error.stack}`;
+            }
+        };
+
+        window.testLogout = function() {
+            const resultDiv = document.getElementById('loginResult');
+            apiService.logout();
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="success">✓ Logged out successfully</span>';
+            document.getElementById('apiStatus').textContent = 'Not Authenticated';
+            document.getElementById('apiStatus').className = 'status offline';
+        };
+
+        window.checkCurrentUser = async function() {
+            const resultDiv = document.getElementById('userResult');
+            resultDiv.style.display = 'block';
+
+            if (!apiService.isAuthenticated()) {
+                resultDiv.innerHTML = '<span class="error">✗ Not authenticated</span>\n\nPlease login first.';
+                return;
+            }
+
+            resultDiv.innerHTML = '<span class="info">⏳ Fetching user info...</span>';
+
+            try {
+                const response = await apiService.getCurrentUser();
+                
+                if (response.success) {
+                    resultDiv.innerHTML = `<span class="success">✓ User authenticated</span>\n\n${JSON.stringify(response.data, null, 2)}`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">✗ Failed to get user</span>\n\n${JSON.stringify(response, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ Error fetching user</span>\n\nError: ${error.message}`;
+            }
+        };
+
+        window.testNavigation = function() {
+            if (apiService.isAuthenticated()) {
+                alert('✓ User is authenticated. Navigating to dashboard...');
+                window.location.href = 'dashboard/dashboard.html';
+            } else {
+                alert('✗ User not authenticated. Please login first.');
+            }
+        };
+
+        window.testNavigationBack = function() {
+            window.location.href = 'login.html';
+        };
+
+        // Auto-check connection on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testConnection();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

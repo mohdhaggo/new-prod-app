@@ -23,10 +23,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Check authentication
 function checkAuth() {
-    // Get user data from session storage (set during login)
-    const userData = sessionStorage.getItem('user');
+    // Get auth token and user data from local storage (set during login)
+    const token = localStorage.getItem('auth_token');
+    const userData = localStorage.getItem('user');
     
-    if (!userData) {
+    if (!token || !userData) {
         // Redirect to login if not authenticated
         window.location.href = '../login.html';
         return;
@@ -35,6 +36,7 @@ function checkAuth() {
     try {
         currentUser = JSON.parse(userData);
     } catch (e) {
+        console.error('Error parsing user data:', e);
         window.location.href = '../login.html';
     }
 }
@@ -48,7 +50,8 @@ function loadUserData() {
     const userAvatarElement = document.getElementById('userAvatar');
     
     if (userNameElement) {
-        userNameElement.textContent = currentUser.name || 'User';
+        const fullName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.name || 'User';
+        userNameElement.textContent = fullName;
     }
     
     if (userRoleElement) {
@@ -57,7 +60,8 @@ function loadUserData() {
     
     if (userAvatarElement) {
         // Get initials from name
-        const initials = (currentUser.name || 'U')
+        const name = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.name || 'U';
+        const initials = name
             .split(' ')
             .map(n => n[0])
             .join('')
@@ -95,14 +99,41 @@ function setupNavigation() {
 function loadPage(page) {
     const container = document.getElementById('pageContainer');
     
-    // Show loading state
-    container.innerHTML = '<div class="loading-spinner"></div>';
+    // Pages that have their own HTML files
+    const externalPages = {
+        'department-role': 'pages/department-role/department-role.html',
+        'system-users': 'pages/system-users/system-users.html',
+        'customers': 'pages/customers/customers.html',
+        'vehicles': 'pages/vehicles/vehicles.html',
+        'job-order': 'pages/job-order/job-order.html',
+        'inspection': 'pages/inspection/inspection.html',
+        'service-execution': 'pages/service-execution/service-execution.html',
+        'quality-check': 'pages/quality-check/quality-check.html',
+        'payment-invoice': 'pages/payment-invoice/payment-invoice.html',
+        'exit-permit': 'pages/exit-permit/exit-permit.html',
+        'order-history': 'pages/order-history/order-history.html',
+        'role-permission': 'pages/role-permission/role-permission.html'
+    };
     
-    // In a real application, you would load the actual page content here
-    // For now, we'll show a placeholder based on the page
-    setTimeout(() => {
-        container.innerHTML = getPageContent(page);
-    }, 300);
+    // If this page has its own HTML file, load it in an iframe
+    if (externalPages[page]) {
+        container.innerHTML = `
+            <iframe 
+                src="${externalPages[page]}" 
+                style="width: 100%; height: 100%; border: none; display: block; margin: 0; padding: 0;"
+                frameborder="0"
+                id="pageFrame"
+            ></iframe>
+        `;
+    } else {
+        // For overview and other pages without dedicated HTML, show placeholder content
+        // Show loading state
+        container.innerHTML = '<div class="loading-spinner"></div>';
+        
+        setTimeout(() => {
+            container.innerHTML = getPageContent(page);
+        }, 300);
+    }
 }
 
 // Get page content (this would normally load from separate HTML files)
@@ -166,11 +197,10 @@ function setupLogout() {
     
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
-            // Clear session
-            sessionStorage.removeItem('user');
-            
-            // Show logout message
-            alert('Logging out...');
+            // Clear localStorage
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('permissions');
             
             // Redirect to login
             window.location.href = '../login.html';

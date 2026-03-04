@@ -1,8 +1,17 @@
+// Import API service
+import apiService from './api-service.js';
+
 (function() {
     const form = document.getElementById('loginForm');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const errorContainer = document.getElementById('errorContainer');
+
+    // Check if user is already logged in
+    if (apiService.isAuthenticated()) {
+        window.location.href = 'dashboard/dashboard.html';
+        return;
+    }
 
     // Email validation regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -85,40 +94,42 @@
         submitButton.textContent = 'Signing in...';
         submitButton.disabled = true;
 
-        // Simulate API call (replace with actual authentication)
-        setTimeout(() => {
-            // In a real application, you would make an API call here
-            // For demo purposes, we'll redirect to dashboard after "successful" login
-            
-            // You can replace this with actual authentication logic
-            const mockAuthentication = true; // This should come from your backend
-            
-            if (mockAuthentication) {
-                // Show success message
-                const successDiv = document.createElement('div');
-                successDiv.className = 'error-text';
-                successDiv.style.backgroundColor = '#f0fdf4';
-                successDiv.style.color = '#10b981';
-                successDiv.style.borderColor = '#dcfce7';
-                successDiv.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 6L9 17L4 12" stroke="#10b981"/>
-                    </svg>
-                    Login successful! Redirecting...
-                `;
-                errorContainer.appendChild(successDiv);
+        // Call API for authentication
+        apiService.login(email, password)
+            .then(response => {
+                if (response.success) {
+                    // Show success message
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'error-text';
+                    successDiv.style.backgroundColor = '#f0fdf4';
+                    successDiv.style.color = '#10b981';
+                    successDiv.style.borderColor = '#dcfce7';
+                    successDiv.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 6L9 17L4 12" stroke="#10b981"/>
+                        </svg>
+                        Login successful! Redirecting...
+                    `;
+                    errorContainer.appendChild(successDiv);
 
-                // Redirect to dashboard after short delay
-                setTimeout(() => {
-                    window.location.href = 'dashboard/dashboard.html';
-                }, 1500);
-            } else {
-                // Show error message (this would come from your backend)
-                showError('Invalid email or password', 'both');
+                    // Redirect to dashboard after short delay
+                    setTimeout(() => {
+                        window.location.href = 'dashboard/dashboard.html';
+                    }, 1000);
+                } else {
+                    // Show error message from API
+                    showError(response.message || 'Invalid email or password', 'both');
+                    submitButton.textContent = originalText;
+                    submitButton.disabled = false;
+                }
+            })
+            .catch(error => {
+                // Handle API errors
+                console.error('Login error:', error);
+                showError(error.message || 'Login failed. Please try again.', 'both');
                 submitButton.textContent = originalText;
                 submitButton.disabled = false;
-            }
-        }, 1000);
+            });
     });
 
     // Remove field error state when user starts typing

@@ -1,7 +1,14 @@
 // API Service for Frontend
 // This module handles all API communication and replaces localStorage usage
 
-const API_BASE_URL = 'http://localhost:8080/backend/api';
+// Determine API base URL based on environment
+// If backend is served from backend directory: http://localhost:8080/api
+// If served from root: http://localhost:8080/backend/api
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? (window.location.port === '8080' 
+        ? 'http://localhost:8080/api'  // When PHP server runs from backend directory
+        : 'http://localhost:8080/backend/api') // When PHP server runs from root
+    : '/backend/api'; // Production
 
 class ApiService {
     constructor() {
@@ -51,6 +58,13 @@ class ApiService {
             const data = await response.json();
 
             if (!response.ok) {
+                // Handle token expiration
+                if (data.message && (data.message.includes('Token expired') || data.message.includes('Unauthorized'))) {
+                    this.removeToken();
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('permissions');
+                    window.location.href = 'login.html';
+                }
                 throw new Error(data.message || 'Request failed');
             }
 

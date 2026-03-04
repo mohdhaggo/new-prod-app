@@ -11,6 +11,8 @@
     let activeDropdown = null;
     let verifiedCustomer = null;            // for add vehicle verification
     let editVerifiedCustomer = null;         // for edit vehicle verification
+    let nhtsaMakes = [];
+    let hasLoadedNhtsaMakes = false;
 
     // DOM elements
     const inp = document.getElementById('smartSearchInput');
@@ -76,6 +78,7 @@
     // ========== LOCALSTORAGE PERSISTENCE ==========
     const VEHICLES_STORAGE_KEY = 'vehicles';
     const CUSTOMERS_STORAGE_KEY = 'customers';
+    const NHTSA_API_BASE = 'https://vpic.nhtsa.dot.gov/api/vehicles';
 
     function loadDataFromLocalStorage() {
         // Load vehicles
@@ -162,6 +165,7 @@
     // Customer verification
     verifyCustomerBtn.addEventListener('click', verifyCustomer);
     editVerifyCustomerBtn.addEventListener('click', verifyEditCustomer);
+    vehicleMake.addEventListener('change', handleVehicleMakeChange);
 
     // Save handlers
     saveVehicleBtn.addEventListener('click', saveNewVehicle);
@@ -190,6 +194,11 @@
         document.getElementById('addVehicleForm').reset();
         customerVerifiedInfo.classList.remove('visible');
         verifiedCustomer = null;
+        resetVehicleModelSelect();
+
+        if (!hasLoadedNhtsaMakes) {
+            loadVehicleMakesFromNhtsa();
+        }
     }
 
     function resetEditVehicleForm() {
@@ -239,6 +248,94 @@
             editVerifiedCustomer = null;
             editCustomerVerifiedInfo.classList.remove('visible');
             showAlert('Error', 'Customer not found. Customer must be pre-registered in the system.', 'error');
+        }
+    }
+
+    async function fetchNhtsaJson(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`NHTSA request failed with status ${response.status}`);
+        }
+        return response.json();
+    }
+
+    function renderVehicleMakeOptions() {
+        if (!nhtsaMakes.length) {
+            vehicleMake.innerHTML = '<option value="">No makes available</option>';
+            return;
+        }
+
+        const options = ['<option value="">Select make</option>'];
+        nhtsaMakes.forEach(make => {
+            options.push(`<option value="${make.Make_Name}" data-make-id="${make.Make_ID}">${make.Make_Name}</option>`);
+        });
+
+        vehicleMake.innerHTML = options.join('');
+    }
+
+    function resetVehicleModelSelect(placeholderText = 'Select make first') {
+        vehicleModel.innerHTML = `<option value="">${placeholderText}</option>`;
+        vehicleModel.disabled = true;
+    }
+
+    function renderVehicleModelOptions(models) {
+        if (!models.length) {
+            resetVehicleModelSelect('No models found for selected make');
+            return;
+        }
+
+        const uniqueModels = [...new Set(models.map(model => model.Model_Name).filter(Boolean))];
+        uniqueModels.sort((a, b) => a.localeCompare(b));
+
+        const options = ['<option value="">Select model</option>'];
+        uniqueModels.forEach(modelName => {
+            options.push(`<option value="${modelName}">${modelName}</option>`);
+        });
+
+        vehicleModel.innerHTML = options.join('');
+        vehicleModel.disabled = false;
+    }
+
+    async function loadVehicleMakesFromNhtsa() {
+        try {
+            vehicleMake.innerHTML = '<option value="">Loading makes...</option>';
+            vehicleMake.disabled = true;
+            resetVehicleModelSelect();
+
+            const result = await fetchNhtsaJson(`${NHTSA_API_BASE}/GetAllMakes?format=json`);
+            nhtsaMakes = Array.isArray(result.Results) ? result.Results : [];
+            nhtsaMakes.sort((a, b) => a.Make_Name.localeCompare(b.Make_Name));
+
+            renderVehicleMakeOptions();
+            vehicleMake.disabled = false;
+            hasLoadedNhtsaMakes = true;
+        } catch (error) {
+            hasLoadedNhtsaMakes = false;
+            vehicleMake.innerHTML = '<option value="">Unable to load makes</option>';
+            vehicleMake.disabled = true;
+            resetVehicleModelSelect('Unable to load models');
+            showAlert('Error', 'Unable to load car makes/models from NHTSA API. Please try again later.', 'error');
+        }
+    }
+
+    async function handleVehicleMakeChange() {
+        const selectedOption = vehicleMake.options[vehicleMake.selectedIndex];
+        const makeId = selectedOption?.dataset?.makeId;
+
+        resetVehicleModelSelect('Loading models...');
+
+        if (!makeId) {
+            resetVehicleModelSelect();
+            return;
+        }
+
+        try {
+            const result = await fetchNhtsaJson(`${NHTSA_API_BASE}/GetModelsForMakeId/${makeId}?format=json`);
+            const models = Array.isArray(result.Results) ? result.Results : [];
+            renderVehicleModelOptions(models);
+        } catch (error) {
+            resetVehicleModelSelect('Unable to load models');
+            showAlert('Error', 'Unable to load models for selected make.', 'error');
         }
     }
 

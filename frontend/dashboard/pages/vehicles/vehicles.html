@@ -106,11 +106,15 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Make <span style="color:red;">*</span></label>
-                    <input type="text" id="vehicleMake" class="form-control" required>
+                    <select id="vehicleMake" class="form-control" required>
+                        <option value="">Loading makes...</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Model <span style="color:red;">*</span></label>
-                    <input type="text" id="vehicleModel" class="form-control" required>
+                    <select id="vehicleModel" class="form-control" required disabled>
+                        <option value="">Select make first</option>
+                    </select>
                 </div>
             </div>
 

@@ -1,7 +1,31 @@
 // Department & Role Management - No Demo Data
 
+// Check authentication on page load
+(function checkAuth() {
+    const token = localStorage.getItem('auth_token');
+    const userData = localStorage.getItem('user');
+    
+    if (!token || !userData) {
+        // Redirect to login if not authenticated
+        // Use top.location if in iframe, otherwise use window.location
+        if (window.top !== window.self) {
+            window.top.location.href = '../../../login.html';
+        } else {
+            window.location.href = '../../../login.html';
+        }
+        return;
+    }
+})();
+
 // Initialize empty data structure
 let departments = [];
+
+const apiBaseUrl = (() => {
+    if (window.location.port === '8080') {
+        return `http://${window.location.hostname}:8080/api`;
+    }
+    return '/backend/api';
+})();
 
 // DOM Elements
 const addDeptBtn = document.getElementById('addDeptBtn');
@@ -24,30 +48,93 @@ const alertTitle = document.getElementById('alertTitle');
 const alertMessage = document.getElementById('alertMessage');
 const alertActions = document.getElementById('alertActions');
 
-// Load departments from localStorage (if any)
-function loadDepartments() {
-    const saved = localStorage.getItem('departments');
-    if (saved) {
-        try {
-            departments = JSON.parse(saved);
-        } catch (e) {
-            departments = [];
-        }
-    } else {
-        departments = [];
+async function apiRequest(endpoint, options = {}) {
+    const token = localStorage.getItem('auth_token');
+    const requestOptions = {
+        method: options.method || 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        },
+        ...options
+    };
+
+    const response = await fetch(`${apiBaseUrl}${endpoint}`, requestOptions);
+    let result = null;
+
+    try {
+        result = await response.json();
+    } catch (error) {
+        result = null;
     }
+
+    if (!response.ok || !result?.success) {
+        const message = result?.message || 'Request failed';
+        
+        // Handle token expiration
+        if (message.includes('Token expired') || message.includes('Unauthorized')) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('permissions');
+            if (window.top !== window.self) {
+                window.top.location.href = '../../../login.html';
+            } else {
+                window.location.href = '../../../login.html';
+            }
+            return;
+        }
+        
+        throw new Error(message);
+    }
+
+    return result.data;
 }
 
-// Save departments to localStorage
-function saveDepartments() {
-    localStorage.setItem('departments', JSON.stringify(departments));
+async function loadDepartments() {
+    const [departmentRows, roleRows] = await Promise.all([
+        apiRequest('/departments'),
+        apiRequest('/roles')
+    ]);
+
+    const rolesByDepartment = {};
+
+    (roleRows || []).forEach(role => {
+        const deptKey = String(role.department_id);
+        if (!rolesByDepartment[deptKey]) {
+            rolesByDepartment[deptKey] = [];
+        }
+
+        rolesByDepartment[deptKey].push({
+            id: role.id,
+            name: role.name,
+            description: role.description || ''
+        });
+    });
+
+    departments = (departmentRows || []).map(dept => ({
+        id: dept.id,
+        name: dept.name,
+        description: dept.description || '',
+        roles: rolesByDepartment[String(dept.id)] || []
+    }));
+}
+
+async function refreshDepartments() {
+    await loadDepartments();
+    renderDepartments();
 }
 
 // Initialize the app
-document.addEventListener('DOMContentLoaded', function() {
-    loadDepartments();
-    renderStats();
-    renderDepartments();
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        await refreshDepartments();
+    } catch (error) {
+        console.error('Failed to load departments and roles:', error);
+        departments = [];
+        renderDepartments();
+        showAlert('Error', error.message || 'Failed to load departments and roles', 'error');
+    }
     
     // Add Department button click
     addDeptBtn.addEventListener('click', function() {
@@ -56,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Add Department form submission
-    addDeptForm.addEventListener('submit', function(e) {
+    addDeptForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const deptName = document.getElementById('deptName').value;
         const deptDescription = document.getElementById('deptDescription').value;
@@ -66,7 +153,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        addDepartment(deptName, deptDescription);
+        const success = await addDepartment(deptName, deptDescription);
+        if (!success) return;
         
         // Reset form and close modal
         addDeptForm.reset();
@@ -75,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Add Role form submission
-    addRoleForm.addEventListener('submit', function(e) {
+    addRoleForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const deptId = parseInt(document.getElementById('roleDeptId').value);
         const roleName = document.getElementById('roleName').value;
@@ -86,7 +174,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        addRole(deptId, roleName, roleDescription);
+        const success = await addRole(deptId, roleName, roleDescription);
+        if (!success) return;
         
         // Reset form and close modal
         addRoleForm.reset();
@@ -95,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Edit Department form submission
-    editDeptForm.addEventListener('submit', function(e) {
+    editDeptForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const deptId = parseInt(document.getElementById('editDeptId').value);
         const deptName = document.getElementById('editDeptName').value;
@@ -106,13 +195,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        updateDepartment(deptId, deptName, deptDescription);
+        const success = await updateDepartment(deptId, deptName, deptDescription);
+        if (!success) return;
         closeModal(editDeptModal);
         showAlert('Success', 'Department updated successfully!', 'success');
     });
     
     // Edit Role form submission
-    editRoleForm.addEventListener('submit', function(e) {
+    editRoleForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const roleId = parseInt(document.getElementById('editRoleId').value);
         const deptId = parseInt(document.getElementById('editRoleDeptId').value);
@@ -124,7 +214,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        updateRole(deptId, roleId, roleName, roleDescription);
+        const success = await updateRole(deptId, roleId, roleName, roleDescription);
+        if (!success) return;
         closeModal(editRoleModal);
         showAlert('Success', 'Role updated successfully!', 'success');
     });
@@ -317,18 +408,22 @@ function renderDepartments() {
 }
 
 // Add a new department
-function addDepartment(name, description) {
-    const newId = departments.length > 0 ? Math.max(...departments.map(d => d.id)) + 1 : 1;
-    
-    departments.push({
-        id: newId,
-        name: name,
-        description: description,
-        roles: []
-    });
-    
-    saveDepartments();
-    renderDepartments();
+async function addDepartment(name, description) {
+    try {
+        await apiRequest('/departments', {
+            method: 'POST',
+            body: JSON.stringify({
+                name,
+                description
+            })
+        });
+        await refreshDepartments();
+        return true;
+    } catch (error) {
+        console.error('Add department failed:', error);
+        showAlert('Error', error.message || 'Failed to add department', 'error');
+        return false;
+    }
 }
 
 // Open Add Role modal
@@ -348,29 +443,23 @@ function openAddRoleModal(deptId) {
 }
 
 // Add a new role to a department
-function addRole(deptId, name, description) {
-    const deptIndex = departments.findIndex(d => d.id === deptId);
-    
-    if (deptIndex === -1) return;
-    
-    // Generate unique role ID
-    let allRoleIds = [];
-    departments.forEach(dept => {
-        dept.roles.forEach(role => {
-            allRoleIds.push(role.id);
+async function addRole(deptId, name, description) {
+    try {
+        await apiRequest('/roles', {
+            method: 'POST',
+            body: JSON.stringify({
+                department_id: deptId,
+                name,
+                description
+            })
         });
-    });
-    
-    const newRoleId = allRoleIds.length > 0 ? Math.max(...allRoleIds) + 1 : 101;
-    
-    departments[deptIndex].roles.push({
-        id: newRoleId,
-        name: name,
-        description: description
-    });
-    
-    saveDepartments();
-    renderDepartments();
+        await refreshDepartments();
+        return true;
+    } catch (error) {
+        console.error('Add role failed:', error);
+        showAlert('Error', error.message || 'Failed to add role', 'error');
+        return false;
+    }
 }
 
 // Open edit department modal
@@ -405,33 +494,42 @@ function openEditRoleModal(deptId, roleId) {
 }
 
 // Update department
-function updateDepartment(deptId, name, description) {
-    const deptIndex = departments.findIndex(d => d.id === deptId);
-    
-    if (deptIndex === -1) return;
-    
-    departments[deptIndex].name = name;
-    departments[deptIndex].description = description;
-    
-    saveDepartments();
-    renderDepartments();
+async function updateDepartment(deptId, name, description) {
+    try {
+        await apiRequest(`/departments/${deptId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                name,
+                description
+            })
+        });
+        await refreshDepartments();
+        return true;
+    } catch (error) {
+        console.error('Update department failed:', error);
+        showAlert('Error', error.message || 'Failed to update department', 'error');
+        return false;
+    }
 }
 
 // Update role
-function updateRole(deptId, roleId, name, description) {
-    const deptIndex = departments.findIndex(d => d.id === deptId);
-    
-    if (deptIndex === -1) return;
-    
-    const roleIndex = departments[deptIndex].roles.findIndex(r => r.id === roleId);
-    
-    if (roleIndex === -1) return;
-    
-    departments[deptIndex].roles[roleIndex].name = name;
-    departments[deptIndex].roles[roleIndex].description = description;
-    
-    saveDepartments();
-    renderDepartments();
+async function updateRole(deptId, roleId, name, description) {
+    try {
+        await apiRequest(`/roles/${roleId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                department_id: deptId,
+                name,
+                description
+            })
+        });
+        await refreshDepartments();
+        return true;
+    } catch (error) {
+        console.error('Update role failed:', error);
+        showAlert('Error', error.message || 'Failed to update role', 'error');
+        return false;
+    }
 }
 
 // Delete department
@@ -455,12 +553,16 @@ function deleteDepartment(deptId) {
             {
                 text: 'Delete',
                 class: 'alert-btn-danger',
-                action: function() {
-                    departments.splice(deptIndex, 1);
-                    saveDepartments();
-                    renderDepartments();
-                    closeAlert();
-                    showAlert('Success', `Department "${deptName}" deleted successfully!`, 'success');
+                action: async function() {
+                    try {
+                        await apiRequest(`/departments/${deptId}`, { method: 'DELETE' });
+                        await refreshDepartments();
+                        closeAlert();
+                        showAlert('Success', `Department "${deptName}" deleted successfully!`, 'success');
+                    } catch (error) {
+                        console.error('Delete department failed:', error);
+                        showAlert('Error', error.message || 'Failed to delete department', 'error');
+                    }
                 }
             }
         ]
@@ -492,12 +594,16 @@ function deleteRole(deptId, roleId) {
             {
                 text: 'Delete',
                 class: 'alert-btn-danger',
-                action: function() {
-                    departments[deptIndex].roles.splice(roleIndex, 1);
-                    saveDepartments();
-                    renderDepartments();
-                    closeAlert();
-                    showAlert('Success', `Role "${roleName}" deleted successfully!`, 'success');
+                action: async function() {
+                    try {
+                        await apiRequest(`/roles/${roleId}`, { method: 'DELETE' });
+                        await refreshDepartments();
+                        closeAlert();
+                        showAlert('Success', `Role "${roleName}" deleted successfully!`, 'success');
+                    } catch (error) {
+                        console.error('Delete role failed:', error);
+                        showAlert('Error', error.message || 'Failed to delete role', 'error');
+                    }
                 }
             }
         ]
