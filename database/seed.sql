@@ -65,3 +65,20 @@ INSERT INTO vehicles (
     'JTDKBRFU9H3045678',
     'Sedan'
 );
+
+-- Insert permissions/modules
+INSERT INTO permissions (module_name, display_name, description, sort_order) VALUES
+('dashboard', 'Dashboard', 'Main dashboard access', 1),
+('customers', 'Customers', 'Customer management', 2),
+('vehicles', 'Vehicles', 'Vehicle management', 3),
+('job_orders', 'Job Orders', 'Job order management', 4),
+('departments', 'Departments', 'Department management', 5),
+('roles', 'Roles', 'Role management', 6),
+('users', 'Users', 'User management', 7),
+('payments', 'Payments', 'Payment management', 8),
+('reports', 'Reports', 'Reports and analytics', 9);
+
+-- Grant full permissions to Administrator role (role_id = 1)
+INSERT INTO role_permissions (role_id, permission_id, can_view, can_create, can_edit, can_delete, can_approve)
+SELECT 1, id, TRUE, TRUE, TRUE, TRUE, TRUE
+FROM permissions;

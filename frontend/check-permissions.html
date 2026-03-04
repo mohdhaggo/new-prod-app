@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Permissions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .permission {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .has-permission {
+            background: #d4edda;
+            color: #155724;
+        }
+        .no-permission {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Permission Checker</h1>
+    
+    <div>
+        <button onclick="checkPermissions()">Check My Permissions</button>
+        <button onclick="logout()">Logout & Re-login</button>
+    </div>
+    
+    <div id="output"></div>
+
+    <script>
+        const apiBaseUrl = 'http://localhost:8080/api';
+
+        async function checkPermissions() {
+            const token = localStorage.getItem('auth_token');
+            const userStr = localStorage.getItem('user');
+            const permissionsStr = localStorage.getItem('permissions');
+            
+            const output = document.getElementById('output');
+            
+            if (!token) {
+                output.innerHTML = '<h2>Not logged in</h2><p>Please <a href="login.html">login</a> first.</p>';
+                return;
+            }
+
+            const user = JSON.parse(userStr);
+            const permissions = JSON.parse(permissionsStr || '{}');
+            
+            let html = '<h2>User Info</h2>';
+            html += '<pre>' + JSON.stringify(user, null, 2) + '</pre>';
+            
+            html += '<h2>Stored Permissions (in localStorage)</h2>';
+            html += '<pre>' + JSON.stringify(permissions, null, 2) + '</pre>';
+            
+            // Check departments permissions specifically
+            html += '<h2>Departments Permissions</h2>';
+            const deptPerms = permissions.departments || {};
+            html += `<div class="permission ${deptPerms.view ? 'has-permission' : 'no-permission'}">View: ${deptPerms.view ? '✓ Yes' : '✗ No'}</div>`;
+            html += `<div class="permission ${deptPerms.create ? 'has-permission' : 'no-permission'}">Create: ${deptPerms.create ? '✓ Yes' : '✗ No'}</div>`;
+            html += `<div class="permission ${deptPerms.edit ? 'has-permission' : 'no-permission'}">Edit: ${deptPerms.edit ? '✓ Yes' : '✗ No'}</div>`;
+            html += `<div class="permission ${deptPerms.delete ? 'has-permission' : 'no-permission'}">Delete: ${deptPerms.delete ? '✓ Yes' : '✗ No'}</div>`;
+            
+            // Try to get fresh permissions from API
+            try {
+                const response = await fetch(`${apiBaseUrl}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    html += '<h2>Fresh Permissions from API</h2>';
+                    html += '<pre>' + JSON.stringify(result.data?.permissions || result.data, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                console.error('Failed to get fresh permissions', error);
+            }
+            
+            output.innerHTML = html;
+        }
+
+        function logout() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('permissions');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

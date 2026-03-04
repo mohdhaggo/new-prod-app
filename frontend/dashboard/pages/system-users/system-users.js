@@ -208,6 +208,9 @@ async function initializeApp() {
     } catch (error) {
         console.error('Error populating dropdowns:', error);
     }
+
+    // Re-render after departments/roles are loaded so table shows names instead of IDs
+    renderTable();
     
     populateLineManagerDropdowns();
     
@@ -227,6 +230,21 @@ async function initializeApp() {
     // Edit form event listeners
     if (closeEditFormBtn) closeEditFormBtn.addEventListener('click', () => closeModal(editUserModal));
     if (editUserForm) editUserForm.addEventListener('submit', saveEditUser);
+    
+    // Department change event listeners - filter roles by department
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', function() {
+            const selectedDepartmentId = this.value;
+            populateRolesByDepartment(selectedDepartmentId, roleSelect);
+        });
+    }
+    
+    if (editDepartmentSelect) {
+        editDepartmentSelect.addEventListener('change', function() {
+            const selectedDepartmentId = this.value;
+            populateRolesByDepartment(selectedDepartmentId, editRoleSelect);
+        });
+    }
     
     // Close modals when clicking outside
     if (userFormModal) {
@@ -330,18 +348,10 @@ async function populateDropdowns() {
             });
         });
         
-        // Populate role dropdowns
+        // Populate role dropdowns (initially all roles - will be filtered when department is selected)
         console.log('Populating role dropdowns...');
         [roleSelect, editRoleSelect].forEach((select) => {
-            select.innerHTML = '<option value="">Select Role</option>';
-            roles.forEach(role => {
-                const roleValue = typeof role === 'object' ? role.id : role;
-                const roleName = typeof role === 'object' ? role.name : role;
-                const option = document.createElement('option');
-                option.value = roleValue;
-                option.text = roleName;
-                select.appendChild(option);
-            });
+            select.innerHTML = '<option value="">Select Department First</option>';
         });
         
         console.log('populateDropdowns completed successfully');
@@ -350,6 +360,143 @@ async function populateDropdowns() {
     }
 }
 
+// Populate roles based on selected department
+function populateRolesByDepartment(departmentId, targetSelect) {
+    if (!departmentId) {
+        targetSelect.innerHTML = '<option value="">Select Department First</option>';
+        return;
+    }
+    
+    // Filter roles that belong to the selected department
+    const departmentRoles = roles.filter(role => {
+        const roleDeptId = typeof role === 'object' ? role.department_id : null;
+        return roleDeptId == departmentId;
+    });
+    
+    targetSelect.innerHTML = '<option value="">Select Role</option>';
+    
+    if (departmentRoles.length === 0) {
+        targetSelect.innerHTML = '<option value="">No roles available for this department</option>';
+        return;
+    }
+    
+    departmentRoles.forEach(role => {
+        const roleValue = typeof role === 'object' ? role.id : role;
+        const roleName = typeof role === 'object' ? role.name : role;
+        const option = document.createElement('option');
+        option.value = roleValue;
+        option.text = roleName;
+        targetSelect.appendChild(option);
+    });
+}
+
+function normalizeLookupValue(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    return String(value).trim();
+}
+
+function getDepartmentName(departmentValue) {
+    const normalizedDepartmentValue = normalizeLookupValue(departmentValue);
+    if (!normalizedDepartmentValue) {
+        return 'Not Assigned';
+    }
+
+    const matchingDepartment = departments.find(department => {
+        if (typeof department !== 'object') {
+            return normalizeLookupValue(department) === normalizedDepartmentValue;
+        }
+
+        return normalizeLookupValue(department.id) === normalizedDepartmentValue ||
+            normalizeLookupValue(department.name) === normalizedDepartmentValue;
+    });
+
+    if (matchingDepartment && typeof matchingDepartment === 'object') {
+        return matchingDepartment.name || normalizedDepartmentValue;
+    }
+
+    return matchingDepartment || normalizedDepartmentValue;
+}
+
+function getDepartmentId(departmentValue) {
+    const normalizedDepartmentValue = normalizeLookupValue(departmentValue);
+    if (!normalizedDepartmentValue) {
+        return '';
+    }
+
+    const matchingDepartment = departments.find(department => {
+        if (typeof department !== 'object') {
+            return normalizeLookupValue(department) === normalizedDepartmentValue;
+        }
+
+        return normalizeLookupValue(department.id) === normalizedDepartmentValue ||
+            normalizeLookupValue(department.name) === normalizedDepartmentValue;
+    });
+
+    if (matchingDepartment && typeof matchingDepartment === 'object') {
+        return normalizeLookupValue(matchingDepartment.id);
+    }
+
+    return normalizedDepartmentValue;
+}
+
+function getRoleName(roleValue) {
+    const normalizedRoleValue = normalizeLookupValue(roleValue);
+    if (!normalizedRoleValue) {
+        return 'Not Assigned';
+    }
+
+    const matchingRole = roles.find(role => {
+        if (typeof role !== 'object') {
+            return normalizeLookupValue(role) === normalizedRoleValue;
+        }
+
+        return normalizeLookupValue(role.id) === normalizedRoleValue ||
+            normalizeLookupValue(role.name) === normalizedRoleValue;
+    });
+
+    if (matchingRole && typeof matchingRole === 'object') {
+        return matchingRole.name || normalizedRoleValue;
+    }
+
+    return matchingRole || normalizedRoleValue;
+}
+
+function getRoleId(roleValue, departmentId = null) {
+    const normalizedRoleValue = normalizeLookupValue(roleValue);
+    if (!normalizedRoleValue) {
+        return '';
+    }
+
+    const normalizedDepartmentId = normalizeLookupValue(departmentId);
+
+    const matchingRole = roles.find(role => {
+        if (typeof role !== 'object') {
+            return normalizeLookupValue(role) === normalizedRoleValue;
+        }
+
+        const matchesRole = normalizeLookupValue(role.id) === normalizedRoleValue ||
+            normalizeLookupValue(role.name) === normalizedRoleValue;
+
+        if (!matchesRole) {
+            return false;
+        }
+
+        if (!normalizedDepartmentId) {
+            return true;
+        }
+
+        return normalizeLookupValue(role.department_id) === normalizedDepartmentId;
+    });
+
+    if (matchingRole && typeof matchingRole === 'object') {
+        return normalizeLookupValue(matchingRole.id);
+    }
+
+    return normalizedRoleValue;
+}
 
 // Populate line manager dropdowns with existing users
 function populateLineManagerDropdowns() {
@@ -552,15 +699,28 @@ function performSmartSearch(query) {
 }
 
 function matchesTerm(user, term) {
+    const employeeId = String(user.employeeId || '').toLowerCase();
+    const name = String(user.name || '').toLowerCase();
+    const email = String(user.email || '').toLowerCase();
+    const mobile = String(user.mobile || '').toLowerCase();
+    const departmentName = getDepartmentName(user.department).toLowerCase();
+    const roleName = getRoleName(user.role).toLowerCase();
+    const rawDepartmentValue = String(user.department || '').toLowerCase();
+    const rawRoleValue = String(user.role || '').toLowerCase();
+    const status = String(user.status || '').toLowerCase();
+    const dashboardAccess = String(user.dashboardAccess || '').toLowerCase();
+
     return (
-        user.employeeId.toLowerCase().includes(term) ||
-        user.name.toLowerCase().includes(term) ||
-        user.email.toLowerCase().includes(term) ||
-        user.mobile.toLowerCase().includes(term) ||
-        user.department.toLowerCase().includes(term) ||
-        user.role.toLowerCase().includes(term) ||
-        user.status.toLowerCase().includes(term) ||
-        user.dashboardAccess.toLowerCase().includes(term)
+        employeeId.includes(term) ||
+        name.includes(term) ||
+        email.includes(term) ||
+        mobile.includes(term) ||
+        departmentName.includes(term) ||
+        roleName.includes(term) ||
+        rawDepartmentValue.includes(term) ||
+        rawRoleValue.includes(term) ||
+        status.includes(term) ||
+        dashboardAccess.includes(term)
     );
 }
 
@@ -580,6 +740,9 @@ function renderTable() {
     paginatedData.forEach(user => {
         const row = document.createElement('tr');
         row.setAttribute('data-id', user.id);
+
+        const departmentName = getDepartmentName(user.department);
+        const roleName = getRoleName(user.role);
         
         // Get line manager name
         let lineManagerName = 'Not Available';
@@ -593,8 +756,8 @@ function renderTable() {
             <td>${highlightSearchMatches(user.name, currentSearchQuery)}</td>
             <td>${highlightSearchMatches(user.email, currentSearchQuery)}</td>
             <td>${highlightSearchMatches(user.mobile, currentSearchQuery)}</td>
-            <td><span class="dept-badge">${user.department}</span></td>
-            <td><span class="role-badge">${user.role}</span></td>
+            <td><span class="dept-badge">${highlightSearchMatches(departmentName, currentSearchQuery)}</span></td>
+            <td><span class="role-badge">${highlightSearchMatches(roleName, currentSearchQuery)}</span></td>
             <td>
                 ${lineManagerName}
                 ${user.lineManager && user.lineManager !== 'not_available' ? '<span class="line-manager-badge">Manager</span>' : ''}
@@ -698,6 +861,9 @@ function getLineManagerName(managerId) {
 }
 
 function renderDetailsView(user) {
+    const departmentName = getDepartmentName(user.department);
+    const roleName = getRoleName(user.role);
+
     const detailsGrid = document.getElementById('detailsGrid');
     detailsGrid.innerHTML = '';
     
@@ -735,11 +901,11 @@ function renderDetailsView(user) {
             </div>
             <div class="info-item">
                 <span class="info-label">Department</span>
-                <span class="info-value">${user.department}</span>
+                <span class="info-value">${departmentName}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Role</span>
-                <span class="info-value">${user.role}</span>
+                <span class="info-value">${roleName}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Line Manager</span>
@@ -802,7 +968,7 @@ function renderDetailsView(user) {
             <div class="reset-password-container">
                 <div class="reset-password-info">
                     <h4>Reset User Password</h4>
-                    <p>Generate a temporary password for the user.</p>
+                    <p>Send a temporary password to the user registered email.</p>
                 </div>
                 <button class="btn-reset-password" onclick="resetPassword('${user.id}')" id="resetPasswordBtn" ${currentPasswordResetEmail ? 'disabled' : ''}>
                     <i class="fas fa-key"></i> Reset Password
@@ -1148,8 +1314,14 @@ async function openEditForm(userId) {
     editEmployeeNameInput.value = user.name;
     editEmailInput.value = user.email;
     editMobileInput.value = user.mobile;
-    editDepartmentSelect.value = user.department;
-    editRoleSelect.value = user.role;
+    const departmentId = getDepartmentId(user.department);
+    editDepartmentSelect.value = departmentId;
+    
+    // Populate roles for the selected department
+    populateRolesByDepartment(departmentId, editRoleSelect);
+    
+    // Set role value after roles are populated
+    editRoleSelect.value = getRoleId(user.role, departmentId);
     editLineManagerSelect.value = user.lineManager || 'not_available';
     
     openModal(editUserModal);
