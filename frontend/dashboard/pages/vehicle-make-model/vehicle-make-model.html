@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rodeo Drive CRM · Vehicle Make & Model Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vehicle-make-model.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-car-side"></i> Vehicle Make & Model Management</h1>
+            <p class="subtitle">Create and manage vehicle manufacturers and models used in vehicle registration</p>
+        </header>
+
+        <div class="main-section">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-list"></i> Manufacturers & Models</h2>
+                <button class="btn btn-primary" id="addMakeBtn">
+                    <i class="fas fa-plus-circle"></i> Add New Manufacturer
+                </button>
+            </div>
+
+            <div class="stats-bar" id="statsBar"></div>
+
+            <div id="manufacturersList">
+                <div class="empty-state">
+                    <i class="fas fa-car"></i>
+                    <h3>No Manufacturers Yet</h3>
+                    <p>Click "Add New Manufacturer" to create your first manufacturer</p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Rodeo Drive CRM · Vehicle Make & Model Management</p>
+        </footer>
+    </div>
+
+    <div id="addMakeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-industry"></i> Add New Manufacturer</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="addMakeForm">
+                <div class="form-group">
+                    <label for="makeName">Manufacturer Name *</label>
+                    <input type="text" id="makeName" placeholder="Enter manufacturer name" required>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Add Manufacturer</button>
+                    <button type="button" class="btn btn-secondary cancel-btn close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="addModelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-car"></i> Add New Model</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="addModelForm">
+                <input type="hidden" id="modelMakeId">
+                <div class="form-group">
+                    <label for="modelName">Model Name *</label>
+                    <input type="text" id="modelName" placeholder="Enter model name" required>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-success">Add Model</button>
+                    <button type="button" class="btn btn-secondary cancel-btn close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editMakeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-edit"></i> Edit Manufacturer</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="editMakeForm">
+                <input type="hidden" id="editMakeId">
+                <div class="form-group">
+                    <label for="editMakeName">Manufacturer Name *</label>
+                    <input type="text" id="editMakeName" required>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editModelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-edit"></i> Edit Model</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="editModelForm">
+                <input type="hidden" id="editModelMakeId">
+                <input type="hidden" id="editModelId">
+                <div class="form-group">
+                    <label for="editModelName">Model Name *</label>
+                    <input type="text" id="editModelName" required>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="alertPopup" class="alert-popup">
+        <div class="alert-content">
+            <div class="alert-header" id="alertHeader">
+                <div class="alert-icon" id="alertIcon"></div>
+                <div class="alert-title" id="alertTitle"></div>
+            </div>
+            <div class="alert-body">
+                <div class="alert-message" id="alertMessage"></div>
+                <div class="alert-actions" id="alertActions"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="vehicle-make-model.js"></script>
+</body>
+</html>

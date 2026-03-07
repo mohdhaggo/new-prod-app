@@ -294,6 +294,9 @@ body {
     margin-top: 5px;
     animation: dropdownFadeIn 0.2s;
 }
+.action-dropdown-menu.dropdown-floating {
+    margin-top: 0;
+}
 @keyframes dropdownFadeIn {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
@@ -526,7 +529,7 @@ body {
 }
 .btn-close-details:hover { background-color: rgba(255,255,255,0.3); }
 .details-body { padding: 30px; flex: 1; }
-.details-grid { display: flex; flex-direction: column; gap: 24px; max-width: 1400px; margin: 0 auto; }
+.details-grid { display: flex; flex-direction: column; gap: 24px; width: 100%; max-width: none; margin: 0; }
 
 .detail-card {
     background: white;

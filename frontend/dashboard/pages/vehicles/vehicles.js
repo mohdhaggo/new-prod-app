@@ -11,8 +11,6 @@
     let activeDropdown = null;
     let verifiedCustomer = null;            // for add vehicle verification
     let editVerifiedCustomer = null;         // for edit vehicle verification
-    let nhtsaMakes = [];
-    let hasLoadedNhtsaMakes = false;
 
     // DOM elements
     const inp = document.getElementById('smartSearchInput');
@@ -63,7 +61,6 @@
     const editVerifiedCustomerName = document.getElementById('editVerifiedCustomerName');
     const editVehicleColor = document.getElementById('editVehicleColor');
     const editVehiclePlate = document.getElementById('editVehiclePlate');
-    const editVehicleType = document.getElementById('editVehicleType');
     const saveEditBtn = document.getElementById('saveEditBtn');
 
     // Service elements
@@ -78,9 +75,121 @@
     // ========== LOCALSTORAGE PERSISTENCE ==========
     const VEHICLES_STORAGE_KEY = 'vehicles';
     const CUSTOMERS_STORAGE_KEY = 'customers';
-    const NHTSA_API_BASE = 'https://vpic.nhtsa.dot.gov/api/vehicles';
+    const VEHICLE_MAKE_MODEL_STORAGE_KEY = 'vehicle_make_model_options';
+    const VEHICLE_COLORS = [
+        'White', 'Black', 'Silver', 'Gray', 'Red', 'Blue', 'Brown', 'Green',
+        'Beige', 'Orange', 'Gold', 'Yellow', 'Purple', 'Navy'
+    ];
+    const DEFAULT_VEHICLE_MAKE_MODEL_OPTIONS = {
+        'Audi': ['A3', 'A4', 'A5', 'A6', 'Q3', 'Q5', 'Q7', 'Q8'],
+        'BMW': ['1 Series', '3 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5', 'X7'],
+        'Chevrolet': ['Camaro', 'Captiva', 'Cruze', 'Malibu', 'Silverado', 'Tahoe'],
+        'Ford': ['EcoSport', 'Escape', 'Explorer', 'F-150', 'Focus', 'Mustang', 'Ranger'],
+        'Honda': ['Accord', 'City', 'Civic', 'CR-V', 'HR-V', 'Pilot'],
+        'Hyundai': ['Accent', 'Creta', 'Elantra', 'Santa Fe', 'Sonata', 'Tucson'],
+        'Kia': ['Cerato', 'K5', 'Rio', 'Seltos', 'Sorento', 'Sportage'],
+        'Lexus': ['ES', 'GX', 'IS', 'LX', 'NX', 'RX'],
+        'Mercedes-Benz': ['A-Class', 'C-Class', 'E-Class', 'GLA', 'GLC', 'GLE', 'S-Class'],
+        'Mitsubishi': ['ASX', 'L200', 'Montero Sport', 'Outlander', 'Pajero'],
+        'Nissan': ['Altima', 'Maxima', 'Patrol', 'Sentra', 'Sunny', 'X-Trail'],
+        'Toyota': ['Camry', 'Corolla', 'Fortuner', 'Hilux', 'Land Cruiser', 'Prado', 'RAV4', 'Yaris'],
+        'Volkswagen': ['Golf', 'Jetta', 'Passat', 'Tiguan', 'Touareg']
+    };
+    let vehicleMakeModelOptions = {};
+
+    function cloneDefaultVehicleMakeModelOptions() {
+        const cloned = {};
+        Object.keys(DEFAULT_VEHICLE_MAKE_MODEL_OPTIONS).forEach(makeName => {
+            cloned[makeName] = [...DEFAULT_VEHICLE_MAKE_MODEL_OPTIONS[makeName]];
+        });
+        return cloned;
+    }
+
+    function sanitizeVehicleMakeModelOptions(rawOptions) {
+        if (!rawOptions || typeof rawOptions !== 'object' || Array.isArray(rawOptions)) {
+            return {};
+        }
+
+        const sanitized = {};
+
+        Object.entries(rawOptions).forEach(([makeName, models]) => {
+            const normalizedMakeName = String(makeName || '').trim().replace(/\s+/g, ' ');
+            if (!normalizedMakeName || !Array.isArray(models)) {
+                return;
+            }
+
+            const uniqueModels = [...new Set(
+                models
+                    .map(modelName => String(modelName || '').trim().replace(/\s+/g, ' '))
+                    .filter(Boolean)
+            )].sort((a, b) => a.localeCompare(b));
+
+            sanitized[normalizedMakeName] = uniqueModels;
+        });
+
+        return sanitized;
+    }
+
+    function loadVehicleMakeModelOptions() {
+        let loadedOptions = null;
+        const storedOptions = localStorage.getItem(VEHICLE_MAKE_MODEL_STORAGE_KEY);
+
+        if (storedOptions) {
+            try {
+                loadedOptions = sanitizeVehicleMakeModelOptions(JSON.parse(storedOptions));
+            } catch (error) {
+                loadedOptions = null;
+            }
+        }
+
+        if (!loadedOptions || !Object.keys(loadedOptions).length) {
+            loadedOptions = cloneDefaultVehicleMakeModelOptions();
+            localStorage.setItem(VEHICLE_MAKE_MODEL_STORAGE_KEY, JSON.stringify(loadedOptions));
+        }
+
+        vehicleMakeModelOptions = loadedOptions;
+    }
+
+    function normalizeCustomerVehicleToGlobal(customer, customerVehicle) {
+        const fallbackVehicleId = `VEH-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const vehicleId = String(customerVehicle?.vehicleId || '').trim() || fallbackVehicleId;
+        const registeredVehiclesCount = Number(
+            customer?.registeredVehiclesCount || (Array.isArray(customer?.vehicles) ? customer.vehicles.length : 0)
+        );
+        const completedServicesCount = Number(customer?.completedServicesCount || 0);
+
+        return {
+            vehicleId,
+            ownedBy: customer?.name || 'Unknown',
+            customerId: customer?.id || '',
+            make: customerVehicle?.make || '',
+            model: customerVehicle?.model || '',
+            year: customerVehicle?.year || '',
+            color: customerVehicle?.color || '',
+            plateNumber: customerVehicle?.plateNumber || '',
+            type: customerVehicle?.type || customerVehicle?.vehicleType || '',
+            vin: customerVehicle?.vin || '',
+            completedServices: Number(customerVehicle?.completedServices || 0),
+            services: Array.isArray(customerVehicle?.services) ? customerVehicle.services : [],
+            customerDetails: {
+                customerId: customer?.id || '',
+                name: customer?.name || '',
+                email: customer?.email || '',
+                mobile: customer?.mobile || '',
+                address: customer?.address || '',
+                leadSource: customer?.leadSource || '',
+                leadDetails: customer?.leadDetails || null,
+                registeredVehiclesCount,
+                registeredVehicles: `${registeredVehiclesCount} vehicles`,
+                completedServicesCount,
+                customerSince: customer?.customerSince || ''
+            }
+        };
+    }
 
     function loadDataFromLocalStorage() {
+        loadVehicleMakeModelOptions();
+
         // Load vehicles
         const storedVehicles = localStorage.getItem(VEHICLES_STORAGE_KEY);
         if (storedVehicles) {
@@ -91,6 +200,10 @@
             }
         } else {
             vehicles = []; // start empty – no demo data
+        }
+
+        if (!Array.isArray(vehicles)) {
+            vehicles = [];
         }
 
         // Load customers for verification
@@ -105,19 +218,34 @@
             customers = [];
         }
 
+        if (!Array.isArray(customers)) {
+            customers = [];
+        }
+
         // Ensure each vehicle has required arrays
         vehicles.forEach(v => {
+            if (!v || typeof v !== 'object') return;
             if (!v.services) v.services = [];
             if (!v.customerDetails) {
                 // Try to find customer from customers list
-                const customer = customers.find(c => c.id === v.customerId);
+                const customer = customers.find(c => c.id === v.customerId) || customers.find(c => c.vehicles?.some(cv => cv.vehicleId === v.vehicleId));
                 if (customer) {
+                    if (!v.customerId) v.customerId = customer.id;
+                    if (!v.ownedBy) v.ownedBy = customer.name;
+                    const registeredVehiclesCount = Number(
+                        customer.registeredVehiclesCount || (Array.isArray(customer.vehicles) ? customer.vehicles.length : 0)
+                    );
                     v.customerDetails = {
                         customerId: customer.id,
                         name: customer.name,
                         email: customer.email || '',
                         mobile: customer.mobile || '',
-                        registeredVehicles: `${customer.registeredVehiclesCount || 0} vehicles`,
+                        address: customer.address || '',
+                        leadSource: customer.leadSource || '',
+                        leadDetails: customer.leadDetails || null,
+                        registeredVehiclesCount,
+                        registeredVehicles: `${registeredVehiclesCount} vehicles`,
+                        completedServicesCount: Number(customer.completedServicesCount || 0),
                         customerSince: customer.customerSince || ''
                     };
                 }
@@ -177,6 +305,8 @@
         if(e.target === alertPopup) alertPopup.style.display = 'none'; 
     });
 
+    initializeVehicleSelectionOptions();
+
     // ========== HELPER FUNCTIONS ==========
     function openModal(modal) { 
         modal.style.display = 'flex'; 
@@ -194,11 +324,7 @@
         document.getElementById('addVehicleForm').reset();
         customerVerifiedInfo.classList.remove('visible');
         verifiedCustomer = null;
-        resetVehicleModelSelect();
-
-        if (!hasLoadedNhtsaMakes) {
-            loadVehicleMakesFromNhtsa();
-        }
+        initializeVehicleSelectionOptions();
     }
 
     function resetEditVehicleForm() {
@@ -251,26 +377,22 @@
         }
     }
 
-    async function fetchNhtsaJson(url) {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`NHTSA request failed with status ${response.status}`);
-        }
-        return response.json();
-    }
-
     function renderVehicleMakeOptions() {
-        if (!nhtsaMakes.length) {
+        const makes = Object.keys(vehicleMakeModelOptions).sort((a, b) => a.localeCompare(b));
+
+        if (!makes.length) {
             vehicleMake.innerHTML = '<option value="">No makes available</option>';
+            vehicleMake.disabled = true;
             return;
         }
 
         const options = ['<option value="">Select make</option>'];
-        nhtsaMakes.forEach(make => {
-            options.push(`<option value="${make.Make_Name}" data-make-id="${make.Make_ID}">${make.Make_Name}</option>`);
+        makes.forEach(makeName => {
+            options.push(`<option value="${makeName}">${makeName}</option>`);
         });
 
         vehicleMake.innerHTML = options.join('');
+        vehicleMake.disabled = false;
     }
 
     function resetVehicleModelSelect(placeholderText = 'Select make first') {
@@ -284,7 +406,7 @@
             return;
         }
 
-        const uniqueModels = [...new Set(models.map(model => model.Model_Name).filter(Boolean))];
+        const uniqueModels = [...new Set(models.filter(Boolean))];
         uniqueModels.sort((a, b) => a.localeCompare(b));
 
         const options = ['<option value="">Select model</option>'];
@@ -296,47 +418,59 @@
         vehicleModel.disabled = false;
     }
 
-    async function loadVehicleMakesFromNhtsa() {
-        try {
-            vehicleMake.innerHTML = '<option value="">Loading makes...</option>';
-            vehicleMake.disabled = true;
-            resetVehicleModelSelect();
-
-            const result = await fetchNhtsaJson(`${NHTSA_API_BASE}/GetAllMakes?format=json`);
-            nhtsaMakes = Array.isArray(result.Results) ? result.Results : [];
-            nhtsaMakes.sort((a, b) => a.Make_Name.localeCompare(b.Make_Name));
-
-            renderVehicleMakeOptions();
-            vehicleMake.disabled = false;
-            hasLoadedNhtsaMakes = true;
-        } catch (error) {
-            hasLoadedNhtsaMakes = false;
-            vehicleMake.innerHTML = '<option value="">Unable to load makes</option>';
-            vehicleMake.disabled = true;
-            resetVehicleModelSelect('Unable to load models');
-            showAlert('Error', 'Unable to load car makes/models from NHTSA API. Please try again later.', 'error');
-        }
+    function initializeVehicleSelectionOptions() {
+        renderVehicleMakeOptions();
+        resetVehicleModelSelect();
+        renderVehicleYearOptions();
+        renderVehicleColorOptions();
     }
 
-    async function handleVehicleMakeChange() {
-        const selectedOption = vehicleMake.options[vehicleMake.selectedIndex];
-        const makeId = selectedOption?.dataset?.makeId;
+    function handleVehicleMakeChange() {
+        const selectedMake = vehicleMake.value;
 
-        resetVehicleModelSelect('Loading models...');
-
-        if (!makeId) {
+        if (!selectedMake) {
             resetVehicleModelSelect();
             return;
         }
 
-        try {
-            const result = await fetchNhtsaJson(`${NHTSA_API_BASE}/GetModelsForMakeId/${makeId}?format=json`);
-            const models = Array.isArray(result.Results) ? result.Results : [];
-            renderVehicleModelOptions(models);
-        } catch (error) {
-            resetVehicleModelSelect('Unable to load models');
-            showAlert('Error', 'Unable to load models for selected make.', 'error');
+        const models = vehicleMakeModelOptions[selectedMake] || [];
+        renderVehicleModelOptions(models);
+    }
+
+    function renderVehicleYearOptions() {
+        const currentYear = new Date().getFullYear();
+        const startYear = 1990;
+        const years = [];
+
+        for (let year = currentYear; year >= startYear; year--) {
+            years.push(year);
         }
+
+        const options = ['<option value="">Select year</option>'];
+        years.forEach(year => {
+            options.push(`<option value="${year}">${year}</option>`);
+        });
+
+        vehicleYear.innerHTML = options.join('');
+    }
+
+    function renderVehicleColorOptions() {
+        const options = ['<option value="">Select color</option>'];
+        VEHICLE_COLORS.forEach(color => {
+            options.push(`<option value="${color}">${color}</option>`);
+        });
+
+        vehicleColor.innerHTML = options.join('');
+    }
+
+    function renderEditVehicleColorOptions(currentColor = '') {
+        const options = ['<option value="">Select color</option>'];
+        VEHICLE_COLORS.forEach(color => {
+            const selected = color === currentColor ? ' selected' : '';
+            options.push(`<option value="${color}"${selected}>${color}</option>`);
+        });
+
+        editVehicleColor.innerHTML = options.join('');
     }
 
     // ========== SEARCH ==========
@@ -455,14 +589,84 @@
         currentDetailsVehicle = vehicle;
         detailsVehicleIdSpan.innerText = vehicle.vehicleId;
 
-        let customerInfo = vehicle.customerDetails || { 
-            name: vehicle.ownedBy,
-            customerId: vehicle.customerId || 'N/A',
-            mobile: 'N/A',
-            email: 'N/A',
-            registeredVehicles: 'N/A',
-            customerSince: 'N/A'
+        const linkedCustomer = customers.find(c => c.id === vehicle.customerId) ||
+            customers.find(c => c.vehicles?.some(cv => cv.vehicleId === vehicle.vehicleId));
+        const snapshotCustomer = vehicle.customerDetails || {};
+
+        const normalizeTextValue = (value, fallback = '—') => {
+            const text = String(value ?? '').trim();
+            if (!text || text.toUpperCase() === 'N/A') return fallback;
+            return text;
         };
+
+        const resolvedCustomerId = normalizeTextValue(
+            linkedCustomer?.id || snapshotCustomer.customerId || vehicle.customerId
+        );
+        const resolvedName = normalizeTextValue(
+            linkedCustomer?.name || snapshotCustomer.name || vehicle.ownedBy
+        );
+        const resolvedMobile = normalizeTextValue(
+            linkedCustomer?.mobile || snapshotCustomer.mobile
+        );
+        const resolvedEmail = normalizeTextValue(
+            linkedCustomer?.email || snapshotCustomer.email
+        );
+        const resolvedAddress = normalizeTextValue(
+            linkedCustomer?.address || snapshotCustomer.address
+        );
+        const resolvedSince = normalizeTextValue(
+            linkedCustomer?.customerSince || snapshotCustomer.customerSince
+        );
+
+        const parsedSnapshotVehicleCount = Number.parseInt(
+            String(snapshotCustomer.registeredVehicles || '').replace(/[^\d]/g, ''),
+            10
+        );
+
+        const customerVehicles = resolvedCustomerId && resolvedCustomerId !== '—'
+            ? vehicles.filter(v =>
+                (v.customerId && v.customerId === resolvedCustomerId) ||
+                (v.customerDetails?.customerId && v.customerDetails.customerId === resolvedCustomerId)
+            )
+            : [];
+
+        const linkedRegisteredVehiclesCount = Number(
+            linkedCustomer?.registeredVehiclesCount || (Array.isArray(linkedCustomer?.vehicles) ? linkedCustomer.vehicles.length : 0)
+        );
+        const snapshotRegisteredVehiclesCount = Number(snapshotCustomer.registeredVehiclesCount || 0);
+        const registeredVehiclesCount = Math.max(
+            Number.isFinite(linkedRegisteredVehiclesCount) ? linkedRegisteredVehiclesCount : 0,
+            customerVehicles.length,
+            Number.isFinite(snapshotRegisteredVehiclesCount) ? snapshotRegisteredVehiclesCount : 0,
+            Number.isFinite(parsedSnapshotVehicleCount) ? parsedSnapshotVehicleCount : 0
+        );
+
+        const derivedCompletedServicesCount = customerVehicles.reduce((total, customerVehicle) => {
+            if (Array.isArray(customerVehicle.services)) {
+                return total + customerVehicle.services.length;
+            }
+            return total + Number(customerVehicle.completedServices || 0);
+        }, 0);
+
+        const completedServicesCount = Math.max(
+            Number(linkedCustomer?.completedServicesCount || 0),
+            Number(snapshotCustomer.completedServicesCount || 0),
+            derivedCompletedServicesCount
+        );
+
+        const leadSource = linkedCustomer?.leadSource || snapshotCustomer.leadSource || '';
+        const leadDetails = linkedCustomer?.leadDetails || snapshotCustomer.leadDetails || null;
+
+        let leadInfo = '—';
+        if(leadSource === 'refer' && leadDetails) leadInfo = `Refer by: ${leadDetails.referrerName || ''} (${leadDetails.referrerMobile || ''})`;
+        else if(leadSource === 'social' && leadDetails) leadInfo = `Social: ${leadDetails.platform || ''}`;
+        else if(leadSource === 'other' && leadDetails) leadInfo = `Other: ${leadDetails.otherText || ''}`;
+        else if(leadSource === 'walk-in') leadInfo = 'Walk-in';
+
+        const vehicleCompletedServicesCount = Math.max(
+            Number(vehicle.completedServices || 0),
+            Array.isArray(vehicle.services) ? vehicle.services.length : 0
+        );
 
         let servicesHtml = '';
         if (vehicle.services && vehicle.services.length) {
@@ -486,15 +690,18 @@
         detailsGrid.innerHTML = `
             <div class="detail-card">
                 <div class="detail-card-header">
-                    <h3><i class="fas fa-user"></i> Customer Information</h3>
+                    <h3><i class="fas fa-user"></i> Customer Info</h3>
                 </div>
                 <div class="card-content">
-                    <div class="info-item"><span class="info-label">Customer ID</span><span class="info-value">${customerInfo.customerId}</span></div>
-                    <div class="info-item"><span class="info-label">Name</span><span class="info-value">${customerInfo.name}</span></div>
-                    <div class="info-item"><span class="info-label">Mobile</span><span class="info-value">${customerInfo.mobile}</span></div>
-                    <div class="info-item"><span class="info-label">Email</span><span class="info-value">${customerInfo.email}</span></div>
-                    <div class="info-item"><span class="info-label">Registered Vehicles</span><span class="info-value">${customerInfo.registeredVehicles}</span></div>
-                    <div class="info-item"><span class="info-label">Customer Since</span><span class="info-value">${customerInfo.customerSince}</span></div>
+                    <div class="info-item"><span class="info-label">ID</span><span class="info-value">${resolvedCustomerId}</span></div>
+                    <div class="info-item"><span class="info-label">Name</span><span class="info-value">${resolvedName}</span></div>
+                    <div class="info-item"><span class="info-label">Mobile</span><span class="info-value">${resolvedMobile}</span></div>
+                    <div class="info-item"><span class="info-label">Email</span><span class="info-value">${resolvedEmail}</span></div>
+                    <div class="info-item"><span class="info-label">Address</span><span class="info-value">${resolvedAddress}</span></div>
+                    <div class="info-item"><span class="info-label">Since</span><span class="info-value">${resolvedSince}</span></div>
+                    <div class="info-item"><span class="info-label">Lead source</span><span class="info-value">${leadInfo}</span></div>
+                    <div class="info-item"><span class="info-label">Vehicles</span><span class="info-value"><span class="count-badge">${registeredVehiclesCount} vehicles</span></span></div>
+                    <div class="info-item"><span class="info-label">Services</span><span class="info-value"><span class="service-count-badge">${completedServicesCount} services</span></span></div>
                 </div>
             </div>
             <div class="detail-card">
@@ -511,6 +718,7 @@
                     <div class="info-item"><span class="info-label">Year</span><span class="info-value">${vehicle.year}</span></div>
                     <div class="info-item"><span class="info-label">Color</span><span class="info-value">${vehicle.color}</span></div>
                     <div class="info-item"><span class="info-label">Plate Number</span><span class="info-value">${vehicle.plateNumber}</span></div>
+                    <div class="info-item"><span class="info-label">Completed Services</span><span class="info-value"><span class="service-count-badge">${vehicleCompletedServicesCount} services</span></span></div>
                     <div class="info-item"><span class="info-label">Type</span><span class="info-value">${vehicle.type || 'N/A'}</span></div>
                     <div class="info-item"><span class="info-label">VIN</span><span class="info-value">${vehicle.vin || 'N/A'}</span></div>
                 </div>
@@ -553,34 +761,73 @@
         detailsScreen.style.display = 'none'; 
     }
 
+    function positionDropdownMenu(menuEl, triggerBtn) {
+        if (!menuEl || !triggerBtn) return;
+
+        const triggerRect = triggerBtn.getBoundingClientRect();
+        menuEl.classList.add('dropdown-floating');
+        menuEl.style.position = 'fixed';
+        menuEl.style.visibility = 'hidden';
+        menuEl.style.display = 'block';
+
+        const menuWidth = menuEl.offsetWidth || 200;
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const horizontalPadding = 8;
+
+        let left = triggerRect.right - menuWidth;
+        if (left < horizontalPadding) left = horizontalPadding;
+        if (left + menuWidth > viewportWidth - horizontalPadding) {
+            left = Math.max(horizontalPadding, viewportWidth - menuWidth - horizontalPadding);
+        }
+
+        menuEl.style.left = `${left}px`;
+        menuEl.style.top = `${triggerRect.bottom + 6}px`;
+        menuEl.style.right = 'auto';
+        menuEl.style.zIndex = '2147483647';
+        menuEl.style.visibility = 'visible';
+    }
+
     // ========== DROPDOWN ==========
     window.toggleDropdown = function(id) {
         const dd = document.getElementById(id); 
         if(!dd) return;
-        const all = document.querySelectorAll('.action-dropdown-menu.show'); 
-        all.forEach(m => { 
-            if(m.id !== id) m.classList.remove('show'); 
-            m.closest('.action-dropdown-container')?.classList.remove('dropdown-open'); 
-        });
-        dd.classList.toggle('show');
-        if(dd.classList.contains('show')) { 
-            activeDropdown = id; 
-            dd.closest('.action-dropdown-container')?.classList.add('dropdown-open'); 
-        } else { 
-            activeDropdown = null; 
-            dd.closest('.action-dropdown-container')?.classList.remove('dropdown-open'); 
-        }
+        const isAlreadyOpen = dd.classList.contains('show');
+
+        window.closeAllDropdowns();
+        if (isAlreadyOpen) return;
+
+        const container = dd.closest('.action-dropdown-container');
+        const triggerBtn = container?.querySelector('.btn-action-dropdown') || null;
+
+        dd.classList.add('show');
+        container?.classList.add('dropdown-open');
+
+        activeDropdown = id;
+        positionDropdownMenu(dd, triggerBtn);
     };
 
     window.closeAllDropdowns = function() {
-        document.querySelectorAll('.action-dropdown-menu.show').forEach(d => d.classList.remove('show'));
+        document.querySelectorAll('.action-dropdown-menu.show').forEach(d => {
+            d.classList.remove('show');
+            d.classList.remove('dropdown-floating');
+            d.style.position = '';
+            d.style.top = '';
+            d.style.left = '';
+            d.style.right = '';
+            d.style.zIndex = '';
+            d.style.visibility = '';
+            d.style.display = '';
+        });
         document.querySelectorAll('.action-dropdown-container.dropdown-open').forEach(c => c.classList.remove('dropdown-open'));
         activeDropdown = null;
     };
 
     document.addEventListener('click', (e) => { 
-        if(!e.target.closest('.action-dropdown-container')) window.closeAllDropdowns(); 
+        if(!e.target.closest('.action-dropdown-container') && !e.target.closest('.action-dropdown-menu')) window.closeAllDropdowns(); 
     });
+
+    window.addEventListener('scroll', window.closeAllDropdowns, true);
+    window.addEventListener('resize', window.closeAllDropdowns);
 
     // ========== VEHICLE CRUD ==========
     window.openEditVehicleModal = (id) => {
@@ -589,9 +836,8 @@
         
         editVehicleId.value = vehicle.vehicleId;
         editCustomerId.value = vehicle.customerId || '';
-        editVehicleColor.value = vehicle.color;
+        renderEditVehicleColorOptions(vehicle.color);
         editVehiclePlate.value = vehicle.plateNumber;
-        editVehicleType.value = vehicle.type || 'Sedan';
         
         // Clear verification
         editCustomerVerifiedInfo.classList.remove('visible');
@@ -607,6 +853,9 @@
 
         // Handle ownership change if verified
         if (editVerifiedCustomer) {
+            const registeredVehiclesCount = Number(
+                editVerifiedCustomer.registeredVehiclesCount || (Array.isArray(editVerifiedCustomer.vehicles) ? editVerifiedCustomer.vehicles.length : 0)
+            );
             vehicle.customerId = editVerifiedCustomer.id;
             vehicle.ownedBy = editVerifiedCustomer.name;
             vehicle.customerDetails = {
@@ -614,7 +863,12 @@
                 name: editVerifiedCustomer.name,
                 email: editVerifiedCustomer.email || '',
                 mobile: editVerifiedCustomer.mobile || '',
-                registeredVehicles: `${editVerifiedCustomer.registeredVehiclesCount || 0} vehicles`,
+                address: editVerifiedCustomer.address || '',
+                leadSource: editVerifiedCustomer.leadSource || '',
+                leadDetails: editVerifiedCustomer.leadDetails || null,
+                registeredVehiclesCount,
+                registeredVehicles: `${registeredVehiclesCount} vehicles`,
+                completedServicesCount: Number(editVerifiedCustomer.completedServicesCount || 0),
                 customerSince: editVerifiedCustomer.customerSince || ''
             };
         }
@@ -622,9 +876,9 @@
         // Update basic info
         vehicle.color = editVehicleColor.value.trim();
         vehicle.plateNumber = editVehiclePlate.value.trim();
-        vehicle.type = editVehicleType.value;
 
         saveVehiclesToLocalStorage();
+        
         closeModal(editVehicleModal);
         currentSearchResults = [...vehicles];
         paginateAndRender();
@@ -656,6 +910,10 @@
 
         // Generate unique vehicle ID
         const newId = 'VEH-' + Date.now().toString().slice(-8) + '-' + Math.floor(Math.random() * 1000);
+        const existingRegisteredVehicles = Number(
+            verifiedCustomer.registeredVehiclesCount || (Array.isArray(verifiedCustomer.vehicles) ? verifiedCustomer.vehicles.length : 0)
+        );
+        const registeredVehiclesCount = existingRegisteredVehicles + 1;
         
         const newVehicle = {
             vehicleId: newId,
@@ -675,19 +933,17 @@
                 name: verifiedCustomer.name,
                 email: verifiedCustomer.email || '',
                 mobile: verifiedCustomer.mobile || '',
-                registeredVehicles: `${(verifiedCustomer.registeredVehiclesCount || 0) + 1} vehicles`,
+                address: verifiedCustomer.address || '',
+                leadSource: verifiedCustomer.leadSource || '',
+                leadDetails: verifiedCustomer.leadDetails || null,
+                registeredVehiclesCount,
+                registeredVehicles: `${registeredVehiclesCount} vehicles`,
+                completedServicesCount: Number(verifiedCustomer.completedServicesCount || 0),
                 customerSince: verifiedCustomer.customerSince || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
             }
         };
 
         vehicles.unshift(newVehicle);
-        
-        // Update customer's vehicle count in customers array
-        const customer = customers.find(c => c.id === verifiedCustomer.id);
-        if (customer) {
-            customer.registeredVehiclesCount = (customer.registeredVehiclesCount || 0) + 1;
-            localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(customers));
-        }
 
         saveVehiclesToLocalStorage();
         closeModal(addVehicleModal);
@@ -700,17 +956,6 @@
         if(await showConfirm('Delete Vehicle?', 'This will permanently delete this vehicle and all its service history.', 'warning')) {
             const index = vehicles.findIndex(v => v.vehicleId === id);
             if(index > -1) {
-                const vehicle = vehicles[index];
-                
-                // Update customer's vehicle count
-                if (vehicle.customerId) {
-                    const customer = customers.find(c => c.id === vehicle.customerId);
-                    if (customer) {
-                        customer.registeredVehiclesCount = Math.max(0, (customer.registeredVehiclesCount || 0) - 1);
-                        localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(customers));
-                    }
-                }
-                
                 vehicles.splice(index, 1);
                 saveVehiclesToLocalStorage();
             }
@@ -758,6 +1003,7 @@
         vehicle.completedServices = vehicle.services.length;
 
         saveVehiclesToLocalStorage();
+        
         closeModal(addServiceModal);
         
         if(currentDetailsVehicle && currentDetailsVehicle.vehicleId === vehicleId) {

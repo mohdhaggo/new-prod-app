@@ -28,13 +28,6 @@ header {
     border-bottom: 1px solid #e1e5eb;
 }
 
-/* Back button style */
-header button:hover {
-    background: #f8fafc !important;
-    border-color: #cbd5e1 !important;
-    transform: translateX(-2px);
-}
-
 h1 {
     color: #2c3e50;
     margin-bottom: 10px;
@@ -77,7 +70,6 @@ h1 {
     color: #3498db;
 }
 
-/* Department list styling - FULL WIDTH */
 .departments-container {
     display: flex;
     flex-direction: column;
@@ -159,7 +151,6 @@ h1 {
     gap: 8px;
 }
 
-/* FULL WIDTH ROLE LIST ITEMS */
 .roles-list {
     display: flex;
     flex-direction: column;
@@ -206,19 +197,12 @@ h1 {
     font-weight: 600;
 }
 
-.role-info p {
-    color: #7f8c8d;
-    font-size: 0.95rem;
-    line-height: 1.5;
-}
-
 .role-actions {
     display: flex;
     gap: 10px;
     flex-shrink: 0;
 }
 
-/* Form styling */
 .form-group {
     margin-bottom: 20px;
 }
@@ -295,16 +279,16 @@ input:focus, select:focus, textarea:focus {
     background-color: #7f8c8d;
 }
 
-#addDeptModal .cancel-btn,
-#addRoleModal .cancel-btn {
+#addMakeModal .cancel-btn,
+#addModelModal .cancel-btn {
     background-color: white;
     color: #7f8c8d;
     border: 2px solid #bdc3c7;
     font-weight: 500;
 }
 
-#addDeptModal .cancel-btn:hover,
-#addRoleModal .cancel-btn:hover {
+#addMakeModal .cancel-btn:hover,
+#addModelModal .cancel-btn:hover {
     background-color: #f8f9fa;
     border-color: #95a5a6;
     color: #2c3e50;
@@ -329,7 +313,6 @@ input:focus, select:focus, textarea:focus {
     margin-top: 10px;
 }
 
-/* Modal styling */
 .modal {
     display: none;
     position: fixed;
@@ -398,7 +381,6 @@ input:focus, select:focus, textarea:focus {
     color: #e74c3c;
 }
 
-/* ALERT POPUP STYLING */
 .alert-popup {
     display: none;
     position: fixed;
@@ -512,15 +494,6 @@ input:focus, select:focus, textarea:focus {
     background-color: #2980b9;
 }
 
-.alert-btn-success {
-    background-color: #2ecc71;
-    color: white;
-}
-
-.alert-btn-success:hover {
-    background-color: #27ae60;
-}
-
 .alert-btn-secondary {
     background-color: #95a5a6;
     color: white;
@@ -569,17 +542,6 @@ footer {
     border-top: 1px solid #ecf0f1;
 }
 
-/* Add button in department header */
-.add-role-btn {
-    background-color: #2ecc71;
-    color: white;
-}
-
-.add-role-btn:hover {
-    background-color: #27ae60;
-}
-
-/* Role count badge */
 .role-count {
     display: inline-flex;
     align-items: center;
@@ -594,7 +556,6 @@ footer {
     padding: 0 8px;
 }
 
-/* Stats bar */
 .stats-bar {
     display: flex;
     gap: 20px;
@@ -628,7 +589,6 @@ footer {
     margin-top: 5px;
 }
 
-/* No roles state */
 .no-roles {
     padding: 30px;
     text-align: center;
@@ -645,12 +605,10 @@ footer {
     color: #bdc3c7;
 }
 
-/* Role icon in role item */
 .role-icon {
     color: #2ecc71;
 }
 
-/* Role item number */
 .role-number {
     display: inline-flex;
     align-items: center;
@@ -665,44 +623,43 @@ footer {
     margin-right: 8px;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
     .department-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 15px;
     }
-    
+
     .department-actions {
         width: 100%;
         justify-content: flex-start;
     }
-    
+
     .role-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 15px;
     }
-    
+
     .role-info {
         padding-right: 0;
         width: 100%;
     }
-    
+
     .role-actions {
         width: 100%;
         justify-content: flex-end;
     }
-    
+
     .btn-xsmall {
         min-width: 80px;
     }
-    
+
     .alert-actions {
         flex-direction: column;
         gap: 10px;
     }
-    
+
     .alert-btn {
         width: 100%;
     }

@@ -273,10 +273,13 @@ async function initializeApp() {
     
     // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.action-dropdown-container')) {
+        if (!e.target.closest('.action-dropdown-container') && !e.target.closest('.action-dropdown-menu')) {
             closeAllDropdowns();
         }
     });
+
+    window.addEventListener('scroll', closeAllDropdowns, true);
+    window.addEventListener('resize', closeAllDropdowns);
     
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboardShortcuts);
@@ -536,12 +539,38 @@ function updateEmptyState() {
 // ============================================
 // DROPDOWN FUNCTIONS
 // ============================================
+function positionDropdownMenu(menuEl, triggerBtn) {
+    if (!menuEl || !triggerBtn) return;
+
+    const triggerRect = triggerBtn.getBoundingClientRect();
+    menuEl.classList.add('dropdown-floating');
+    menuEl.style.position = 'fixed';
+    menuEl.style.visibility = 'hidden';
+    menuEl.style.display = 'block';
+
+    const menuWidth = menuEl.offsetWidth || 200;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const horizontalPadding = 8;
+
+    let left = triggerRect.right - menuWidth;
+    if (left < horizontalPadding) left = horizontalPadding;
+    if (left + menuWidth > viewportWidth - horizontalPadding) {
+        left = Math.max(horizontalPadding, viewportWidth - menuWidth - horizontalPadding);
+    }
+
+    menuEl.style.left = `${left}px`;
+    menuEl.style.top = `${triggerRect.bottom + 6}px`;
+    menuEl.style.right = 'auto';
+    menuEl.style.zIndex = '2147483647';
+    menuEl.style.visibility = 'visible';
+}
+
 function toggleDropdown(dropdownId, userId) {
     const dropdown = document.getElementById(`dropdown-${dropdownId}`);
-    const container = dropdown.closest('.action-dropdown-container');
-    const button = document.querySelector(`[onclick="toggleDropdown('${dropdownId}', '${userId}')"]`);
-    
     if (!dropdown) return;
+
+    const container = dropdown.closest('.action-dropdown-container');
+    const button = container ? container.querySelector('.btn-action-dropdown') : null;
     
     // Check if this dropdown is already open
     const isCurrentlyOpen = dropdown.classList.contains('show');
@@ -555,12 +584,21 @@ function toggleDropdown(dropdownId, userId) {
         if (button) button.classList.add('active');
         if (container) container.classList.add('dropdown-open');
         activeDropdown = dropdown;
+        positionDropdownMenu(dropdown, button);
     }
 }
 
 function closeAllDropdowns() {
     document.querySelectorAll('.action-dropdown-menu').forEach(dropdown => {
         dropdown.classList.remove('show');
+        dropdown.classList.remove('dropdown-floating');
+        dropdown.style.position = '';
+        dropdown.style.top = '';
+        dropdown.style.left = '';
+        dropdown.style.right = '';
+        dropdown.style.zIndex = '';
+        dropdown.style.visibility = '';
+        dropdown.style.display = '';
     });
     
     document.querySelectorAll('.btn-action-dropdown').forEach(button => {

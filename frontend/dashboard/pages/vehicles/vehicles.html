@@ -107,7 +107,7 @@
                 <div class="form-group">
                     <label>Make <span style="color:red;">*</span></label>
                     <select id="vehicleMake" class="form-control" required>
-                        <option value="">Loading makes...</option>
+                        <option value="">Select make</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -121,11 +121,15 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Year <span style="color:red;">*</span></label>
-                    <input type="number" id="vehicleYear" class="form-control" min="1900" max="2030" required>
+                    <select id="vehicleYear" class="form-control" required>
+                        <option value="">Select year</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Color <span style="color:red;">*</span></label>
-                    <input type="text" id="vehicleColor" class="form-control" required>
+                    <select id="vehicleColor" class="form-control" required>
+                        <option value="">Select color</option>
+                    </select>
                 </div>
             </div>
 
@@ -185,24 +189,14 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Color</label>
-                    <input type="text" id="editVehicleColor" class="form-control">
+                    <select id="editVehicleColor" class="form-control">
+                        <option value="">Select color</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Plate Number</label>
                     <input type="text" id="editVehiclePlate" class="form-control">
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>Vehicle Type</label>
-                <select id="editVehicleType" class="form-control">
-                    <option value="Sedan">Sedan</option>
-                    <option value="SUV">SUV</option>
-                    <option value="Hatchback">Hatchback</option>
-                    <option value="Truck">Truck</option>
-                    <option value="Coupe">Coupe</option>
-                    <option value="Other">Other</option>
-                </select>
             </div>
 
             <div class="button-group">

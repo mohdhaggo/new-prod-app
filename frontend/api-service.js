@@ -8,7 +8,7 @@ const API_BASE_URL = window.location.hostname === 'localhost'
     ? (window.location.port === '8080' 
         ? 'http://localhost:8080/api'  // When PHP server runs from backend directory
         : 'http://localhost:8080/backend/api') // When PHP server runs from root
-    : '/backend/api'; // Production
+    : `${window.location.protocol}//${window.location.host}/backend/api`; // Production - uses same domain
 
 class ApiService {
     constructor() {

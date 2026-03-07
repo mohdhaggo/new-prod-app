@@ -105,6 +105,7 @@ function loadPage(page) {
         'system-users': 'pages/system-users/system-users.html',
         'customers': 'pages/customers/customers.html',
         'vehicles': 'pages/vehicles/vehicles.html',
+        'vehicle-make-model': 'pages/vehicle-make-model/vehicle-make-model.html',
         'job-order': 'pages/job-order/job-order.html',
         'inspection': 'pages/inspection/inspection.html',
         'service-execution': 'pages/service-execution/service-execution.html',
@@ -149,6 +150,7 @@ function getPageContent(page) {
         'order-history': 'Order History',
         'customers': 'Customers',
         'vehicles': 'Vehicles',
+        'vehicle-make-model': 'Vehicle Make & Model',
         'department-role': 'Department & Role',
         'system-users': 'System Users'
     };

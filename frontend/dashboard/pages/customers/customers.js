@@ -8,6 +8,7 @@
     let totalPages = 1;
     let currentDetailsCustomer = null;
     let activeDropdown = null;
+    let activeDropdownTrigger = null;
 
     // DOM elements
     const inp = document.getElementById('smartSearchInput');
@@ -29,18 +30,92 @@
     const detailsGrid = document.getElementById('detailsGrid');
     const closeDetailsBtn = document.getElementById('closeDetailsScreen');
 
+    // vehicle details
+    const vehicleDetailsScreen = document.getElementById('vehicleDetailsScreen');
+    const detailsVehicleIdSpan = document.getElementById('detailsVehicleId');
+    const vehicleDetailsGrid = document.getElementById('vehicleDetailsGrid');
+    const closeVehicleDetailsBtn = document.getElementById('closeVehicleDetailsScreen');
+
     // modals
     const addCustomerModal = document.getElementById('addCustomerModal');
     const editCustomerModal = document.getElementById('editCustomerModal');
     const addVehicleModal = document.getElementById('addVehicleModal');
+    const editVehicleModal = document.getElementById('editVehicleModal');
+    const addServiceModal = document.getElementById('addServiceModal');
+    const serviceDetailsModal = document.getElementById('serviceDetailsModal');
     const alertPopup = document.getElementById('alertPopup');
 
     // lead dynamic containers
     const leadDynamicDiv = document.getElementById('leadSourceDynamicFields');
     const editLeadDynamicDiv = document.getElementById('editLeadSourceDynamic');
 
+    // vehicle selects
+    const vehicleMake = document.getElementById('vehicleMake');
+    const vehicleModel = document.getElementById('vehicleModel');
+    const vehicleYear = document.getElementById('vehicleYear');
+    const vehicleColor = document.getElementById('vehicleColor');
+
+    // Edit Vehicle elements
+    const editVehicleId = document.getElementById('editVehicleId');
+    const editVehicleColor = document.getElementById('editVehicleColor');
+    const editVehiclePlate = document.getElementById('editVehiclePlate');
+
+    // Service elements
+    const serviceVehicleId = document.getElementById('serviceVehicleId');
+    const serviceOrderType = document.getElementById('serviceOrderType');
+    const serviceWorkStatus = document.getElementById('serviceWorkStatus');
+    const servicePaymentStatus = document.getElementById('servicePaymentStatus');
+    const serviceCost = document.getElementById('serviceCost');
+    const serviceDetailsContent = document.getElementById('serviceDetailsContent');
+
     // ========== LOCALSTORAGE PERSISTENCE ==========
     const STORAGE_KEY = 'customers';
+    const VEHICLES_STORAGE_KEY = 'vehicles';
+    const VEHICLE_MAKE_MODEL_STORAGE_KEY = 'vehicle_make_model_options';
+    const VEHICLE_COLORS = [
+        'White', 'Black', 'Silver', 'Gray', 'Red', 'Blue', 'Brown', 'Green',
+        'Beige', 'Orange', 'Gold', 'Yellow', 'Purple', 'Navy'
+    ];
+    const DEFAULT_VEHICLE_MAKE_MODEL_OPTIONS = {
+        'Audi': ['A3', 'A4', 'A5', 'A6', 'Q3', 'Q5', 'Q7', 'Q8'],
+        'BMW': ['1 Series', '3 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5', 'X7'],
+        'Chevrolet': ['Camaro', 'Captiva', 'Cruze', 'Malibu', 'Silverado', 'Tahoe'],
+        'Ford': ['EcoSport', 'Escape', 'Explorer', 'F-150', 'Focus', 'Mustang', 'Ranger'],
+        'Honda': ['Accord', 'City', 'Civic', 'CR-V', 'HR-V', 'Pilot'],
+        'Hyundai': ['Accent', 'Creta', 'Elantra', 'Santa Fe', 'Sonata', 'Tucson'],
+        'Kia': ['Cerato', 'K5', 'Rio', 'Seltos', 'Sorento', 'Sportage'],
+        'Lexus': ['ES', 'GX', 'IS', 'LX', 'NX', 'RX'],
+        'Mercedes-Benz': ['A-Class', 'C-Class', 'E-Class', 'GLA', 'GLC', 'GLE', 'S-Class'],
+        'Mitsubishi': ['ASX', 'L200', 'Montero Sport', 'Outlander', 'Pajero'],
+        'Nissan': ['Altima', 'Maxima', 'Patrol', 'Sentra', 'Sunny', 'X-Trail'],
+        'Toyota': ['Camry', 'Corolla', 'Fortuner', 'Hilux', 'Land Cruiser', 'Prado', 'RAV4', 'Yaris'],
+        'Volkswagen': ['Golf', 'Jetta', 'Passat', 'Tiguan', 'Touareg']
+    };
+    let vehicleMakeModelOptions = {};
+
+    // Helper function to load vehicles from shared storage
+    function loadVehiclesFromLocalStorage() {
+        const stored = localStorage.getItem(VEHICLES_STORAGE_KEY);
+        if (stored) {
+            try {
+                return JSON.parse(stored);
+            } catch (e) {
+                return [];
+            }
+        }
+        return [];
+    }
+
+    // Helper function to save vehicles to shared storage
+    function saveVehiclesToLocalStorage(vehicles) {
+        localStorage.setItem(VEHICLES_STORAGE_KEY, JSON.stringify(vehicles));
+    }
+
+    // Helper function to get customer's vehicles from shared storage
+    function getCustomerVehicles(customerId) {
+        const allVehicles = loadVehiclesFromLocalStorage();
+        return allVehicles.filter(v => v.customerId === customerId);
+    }
 
     function loadCustomersFromLocalStorage() {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -51,13 +126,19 @@
                 customers = [];
             }
         } else {
-            customers = []; // start empty – no demo data
+            customers = [];
         }
-        // ensure each customer has a 'vehicles' array
+        
+        // Calculate vehicle and service counts from shared vehicles storage
+        const allVehicles = loadVehiclesFromLocalStorage();
         customers.forEach(c => {
-            if (!c.vehicles) c.vehicles = [];
-            c.registeredVehiclesCount = c.vehicles.length;
-            // optional: recalc completedServicesCount from vehicles if needed
+            const customerVehicles = allVehicles.filter(v => v.customerId === c.id);
+            c.registeredVehiclesCount = customerVehicles.length;
+            
+            // Calculate completed services from all customer vehicles
+            c.completedServicesCount = customerVehicles.reduce((total, vehicle) => {
+                return total + (vehicle.completedServices || 0);
+            }, 0);
         });
         currentSearchResults = [...customers];
     }
@@ -66,7 +147,147 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(customers));
     }
 
+    function cloneDefaultVehicleMakeModelOptions() {
+        const cloned = {};
+        Object.keys(DEFAULT_VEHICLE_MAKE_MODEL_OPTIONS).forEach(makeName => {
+            cloned[makeName] = [...DEFAULT_VEHICLE_MAKE_MODEL_OPTIONS[makeName]];
+        });
+        return cloned;
+    }
+
+    function sanitizeVehicleMakeModelOptions(rawOptions) {
+        if (!rawOptions || typeof rawOptions !== 'object' || Array.isArray(rawOptions)) {
+            return {};
+        }
+
+        const sanitized = {};
+
+        Object.entries(rawOptions).forEach(([makeName, models]) => {
+            const normalizedMakeName = String(makeName || '').trim().replace(/\s+/g, ' ');
+            if (!normalizedMakeName || !Array.isArray(models)) {
+                return;
+            }
+
+            const uniqueModels = [...new Set(
+                models
+                    .map(modelName => String(modelName || '').trim().replace(/\s+/g, ' '))
+                    .filter(Boolean)
+            )].sort((a, b) => a.localeCompare(b));
+
+            sanitized[normalizedMakeName] = uniqueModels;
+        });
+
+        return sanitized;
+    }
+
+    function loadVehicleMakeModelOptions() {
+        let loadedOptions = null;
+        const storedOptions = localStorage.getItem(VEHICLE_MAKE_MODEL_STORAGE_KEY);
+
+        if (storedOptions) {
+            try {
+                loadedOptions = sanitizeVehicleMakeModelOptions(JSON.parse(storedOptions));
+            } catch (error) {
+                loadedOptions = null;
+            }
+        }
+
+        if (!loadedOptions || !Object.keys(loadedOptions).length) {
+            loadedOptions = cloneDefaultVehicleMakeModelOptions();
+            localStorage.setItem(VEHICLE_MAKE_MODEL_STORAGE_KEY, JSON.stringify(loadedOptions));
+        }
+
+        vehicleMakeModelOptions = loadedOptions;
+    }
+
+    function renderVehicleMakeOptions() {
+        const makes = Object.keys(vehicleMakeModelOptions).sort((a, b) => a.localeCompare(b));
+
+        if (!makes.length) {
+            vehicleMake.innerHTML = '<option value="">No makes available</option>';
+            vehicleMake.disabled = true;
+            return;
+        }
+
+        const options = ['<option value="">Select make</option>'];
+        makes.forEach(makeName => {
+            options.push(`<option value="${makeName}">${makeName}</option>`);
+        });
+
+        vehicleMake.innerHTML = options.join('');
+        vehicleMake.disabled = false;
+    }
+
+    function resetVehicleModelSelect(placeholderText = 'Select make first') {
+        vehicleModel.innerHTML = `<option value="">${placeholderText}</option>`;
+        vehicleModel.disabled = true;
+    }
+
+    function renderVehicleModelOptions(models) {
+        if (!models.length) {
+            resetVehicleModelSelect('No models found for selected make');
+            return;
+        }
+
+        const uniqueModels = [...new Set(models.filter(Boolean))];
+        uniqueModels.sort((a, b) => a.localeCompare(b));
+
+        const options = ['<option value="">Select model</option>'];
+        uniqueModels.forEach(modelName => {
+            options.push(`<option value="${modelName}">${modelName}</option>`);
+        });
+
+        vehicleModel.innerHTML = options.join('');
+        vehicleModel.disabled = false;
+    }
+
+    function initializeVehicleSelectionOptions() {
+        renderVehicleMakeOptions();
+        resetVehicleModelSelect();
+        renderVehicleYearOptions();
+        renderVehicleColorOptions();
+    }
+
+    function handleVehicleMakeChange() {
+        const selectedMake = vehicleMake.value;
+
+        if (!selectedMake) {
+            resetVehicleModelSelect();
+            return;
+        }
+
+        const models = vehicleMakeModelOptions[selectedMake] || [];
+        renderVehicleModelOptions(models);
+    }
+
+    function renderVehicleYearOptions() {
+        const currentYear = new Date().getFullYear();
+        const startYear = 1990;
+        const years = [];
+
+        for (let year = currentYear; year >= startYear; year--) {
+            years.push(year);
+        }
+
+        const options = ['<option value="">Select year</option>'];
+        years.forEach(year => {
+            options.push(`<option value="${year}">${year}</option>`);
+        });
+
+        vehicleYear.innerHTML = options.join('');
+    }
+
+    function renderVehicleColorOptions() {
+        const options = ['<option value="">Select color</option>'];
+        VEHICLE_COLORS.forEach(color => {
+            options.push(`<option value="${color}">${color}</option>`);
+        });
+
+        vehicleColor.innerHTML = options.join('');
+    }
+
     // ========== INITIAL RENDER ==========
+    loadVehicleMakeModelOptions();
     loadCustomersFromLocalStorage();
     paginateAndRender();
 
@@ -87,7 +308,18 @@
     document.getElementById('cancelVehicleModalBtn').addEventListener('click', ()=> closeModal(addVehicleModal));
     document.getElementById('saveVehicleBtn').addEventListener('click', saveNewVehicle);
 
+    document.getElementById('closeEditVehicleModalBtn').addEventListener('click', ()=> closeModal(editVehicleModal));
+    document.getElementById('cancelEditVehicleModalBtn').addEventListener('click', ()=> closeModal(editVehicleModal));
+    document.getElementById('saveEditVehicleBtn').addEventListener('click', saveEditVehicle);
+
+    document.getElementById('closeServiceModalBtn').addEventListener('click', ()=> closeModal(addServiceModal));
+    document.getElementById('cancelServiceModalBtn').addEventListener('click', ()=> closeModal(addServiceModal));
+    document.getElementById('saveServiceBtn').addEventListener('click', saveNewService);
+
+    document.getElementById('closeServiceDetailsBtn').addEventListener('click', ()=> closeModal(serviceDetailsModal));
+
     closeDetailsBtn.addEventListener('click', closeDetailsView);
+    closeVehicleDetailsBtn.addEventListener('click', closeVehicleDetailsView);
     inp.addEventListener('input', handleSearch);
     pageSizeSelect.addEventListener('change', (e) => { 
         pageSize = +e.target.value; 
@@ -96,6 +328,8 @@
     });
     prevBtn.addEventListener('click', ()=>{ if(currentPage > 1){ currentPage--; paginateAndRender(); } });
     nextBtn.addEventListener('click', ()=>{ if(currentPage < totalPages){ currentPage++; paginateAndRender(); } });
+
+    vehicleMake.addEventListener('change', handleVehicleMakeChange);
 
     // lead source change listeners
     document.getElementById('leadSourceSelect').addEventListener('change', function(){ 
@@ -262,14 +496,17 @@
         else if(cust.leadSource === 'other' && cust.leadDetails) leadInfo = `Other: ${cust.leadDetails.otherText || ''}`;
         else if(cust.leadSource === 'walk-in') leadInfo = 'Walk-in';
         else leadInfo = '—';
+    // Get customer's vehicles from shared storage
+    const customerVehicles = getCustomerVehicles(cust.id);
+        
 
         let vehiclesHtml = '';
-        if (cust.vehicles && cust.vehicles.length) {
-            cust.vehicles.forEach((v, idx) => {
+        if (customerVehicles && customerVehicles.length) {
+            customerVehicles.forEach((v, idx) => {
                 let vdropdown = `vehDrop_${v.vehicleId}`;
                 vehiclesHtml += `<tr>
-                    <td>${v.vehicleId}</td><td>${v.make}</td><td>${v.model}</td><td>${v.year}</td><td>${v.vehicleType||''}</td><td>${v.color}</td><td>${v.plateNumber}</td><td>${v.vin||'N/A'}</td>
-                    <td><span class="service-count-badge">${v.completedServices} serv.</span></td>
+                    <td>${v.vehicleId}</td><td>${v.make}</td><td>${v.model}</td><td>${v.year}</td><td>${v.type||''}</td><td>${v.color}</td><td>${v.plateNumber}</td><td>${v.vin||'N/A'}</td>
+                    <td><span class="service-count-badge">${v.completedServices || 0} serv.</span></td>
                     <td><div class="action-dropdown-container"><button class="btn-action-dropdown btn-small" onclick="window.toggleDropdown('${vdropdown}')"><i class="fas fa-cogs"></i></button>
                     <div class="action-dropdown-menu" id="${vdropdown}">
                         <button class="dropdown-item view" onclick="window.viewVehicle('${v.vehicleId}')"><i class="fas fa-eye"></i> View</button>
@@ -304,34 +541,81 @@
         detailsScreen.style.display = 'none'; 
     }
 
+    function closeVehicleDetailsView() { 
+        document.querySelector('.container').style.display = 'block'; 
+        vehicleDetailsScreen.style.display = 'none'; 
+    }
+
+    function positionDropdownMenu(menuEl, triggerBtn) {
+        if (!menuEl || !triggerBtn) return;
+
+        const triggerRect = triggerBtn.getBoundingClientRect();
+        menuEl.classList.add('dropdown-floating');
+        menuEl.style.position = 'fixed';
+        menuEl.style.visibility = 'hidden';
+        menuEl.style.display = 'block';
+
+        const menuWidth = menuEl.offsetWidth || 200;
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const horizontalPadding = 8;
+
+        let left = triggerRect.right - menuWidth;
+        if (left < horizontalPadding) left = horizontalPadding;
+        if (left + menuWidth > viewportWidth - horizontalPadding) {
+            left = Math.max(horizontalPadding, viewportWidth - menuWidth - horizontalPadding);
+        }
+
+        menuEl.style.left = `${left}px`;
+        menuEl.style.top = `${triggerRect.bottom + 6}px`;
+        menuEl.style.right = 'auto';
+        menuEl.style.zIndex = '2147483647';
+        menuEl.style.visibility = 'visible';
+    }
+
     // ========== DROPDOWN ==========
     window.toggleDropdown = function(id) {
         const dd = document.getElementById(id); 
         if(!dd) return;
-        const all = document.querySelectorAll('.action-dropdown-menu.show'); 
-        all.forEach(m => { 
-            if(m.id !== id) m.classList.remove('show'); 
-            m.closest('.action-dropdown-container')?.classList.remove('dropdown-open'); 
-        });
-        dd.classList.toggle('show');
-        if(dd.classList.contains('show')) { 
-            activeDropdown = id; 
-            dd.closest('.action-dropdown-container')?.classList.add('dropdown-open'); 
-        } else { 
-            activeDropdown = null; 
-            dd.closest('.action-dropdown-container')?.classList.remove('dropdown-open'); 
-        }
+        const isAlreadyOpen = dd.classList.contains('show');
+
+        window.closeAllDropdowns();
+        if (isAlreadyOpen) return;
+
+        const container = dd.closest('.action-dropdown-container');
+        const triggerBtn = container?.querySelector('.btn-action-dropdown') || null;
+
+        dd.classList.add('show');
+        container?.classList.add('dropdown-open');
+
+        activeDropdown = id;
+        activeDropdownTrigger = triggerBtn;
+
+        positionDropdownMenu(dd, triggerBtn);
     };
 
     window.closeAllDropdowns = function() {
-        document.querySelectorAll('.action-dropdown-menu.show').forEach(d => d.classList.remove('show'));
+        document.querySelectorAll('.action-dropdown-menu.show').forEach(d => {
+            d.classList.remove('show');
+            d.classList.remove('dropdown-floating');
+            d.style.position = '';
+            d.style.top = '';
+            d.style.left = '';
+            d.style.right = '';
+            d.style.zIndex = '';
+            d.style.visibility = '';
+            d.style.display = '';
+        });
         document.querySelectorAll('.action-dropdown-container.dropdown-open').forEach(c => c.classList.remove('dropdown-open'));
         activeDropdown = null;
+        activeDropdownTrigger = null;
     };
 
     document.addEventListener('click', (e) => { 
-        if(!e.target.closest('.action-dropdown-container')) window.closeAllDropdowns(); 
+        if(!e.target.closest('.action-dropdown-container') && !e.target.closest('.action-dropdown-menu')) window.closeAllDropdowns(); 
     });
+
+    window.addEventListener('scroll', window.closeAllDropdowns, true);
+    window.addEventListener('resize', window.closeAllDropdowns);
 
     // ========== CUSTOMER CRUD with lead source ==========
     window.openEditCustomerModal = (id) => {
@@ -455,6 +739,8 @@
     // ========== VEHICLE FUNCTIONS ==========
     window.openAddVehicleModal = (custId) => {
         document.getElementById('vehicleCustomerId').value = custId;
+        document.getElementById('addVehicleForm').reset();
+        initializeVehicleSelectionOptions();
         openModal(addVehicleModal);
     };
 
@@ -462,21 +748,46 @@
         let custId = document.getElementById('vehicleCustomerId').value;
         let cust = customers.find(c => c.id === custId);
         if(!cust) return;
-        if(!cust.vehicles) cust.vehicles = [];
+        
+        // Get current vehicles to generate next ID
+        let allVehicles = loadVehiclesFromLocalStorage();
+        const customerVehicles = allVehicles.filter(v => v.customerId === custId);
+        
         let newVeh = {
-            vehicleId: `VEH-${custId.split('-')[1] || '0000'}-${cust.vehicles.length + 1}`,
+            vehicleId: `VEH-${custId.split('-')[1] || '0000'}-${customerVehicles.length + 1}`,
+            ownedBy: cust.name,
+            customerId: cust.id,
             make: document.getElementById('vehicleMake').value,
             model: document.getElementById('vehicleModel').value,
             year: document.getElementById('vehicleYear').value,
-            vehicleType: document.getElementById('vehicleType').value,
             color: document.getElementById('vehicleColor').value,
             plateNumber: document.getElementById('vehiclePlate').value,
+            type: document.getElementById('vehicleType').value || '',
             vin: document.getElementById('vehicleVin').value || '',
-            completedServices: 0
+            completedServices: 0,
+            services: [],
+            customerDetails: {
+                customerId: cust.id,
+                name: cust.name,
+                email: cust.email || '',
+                mobile: cust.mobile || '',
+                address: cust.address || '',
+                leadSource: cust.leadSource || '',
+                leadDetails: cust.leadDetails || null,
+                registeredVehiclesCount: customerVehicles.length + 1,
+                registeredVehicles: `${customerVehicles.length + 1} vehicles`,
+                completedServicesCount: cust.completedServicesCount || 0,
+                customerSince: cust.customerSince || ''
+            }
         };
-        cust.vehicles.push(newVeh);
-        cust.registeredVehiclesCount = cust.vehicles.length;
-        saveCustomersToLocalStorage();
+        
+        allVehicles.unshift(newVeh);
+        saveVehiclesToLocalStorage(allVehicles);
+        
+        // Reload customer data to update counts
+        loadCustomersFromLocalStorage();
+        currentSearchResults = [...customers];
+        
         closeModal(addVehicleModal);
         if(currentDetailsCustomer && currentDetailsCustomer.id === custId) openDetailsView(custId);
         paginateAndRender();
@@ -484,18 +795,159 @@
     }
 
     window.deleteVehicle = (vehId) => {
-        let cust = customers.find(c => c.vehicles?.some(v => v.vehicleId === vehId));
-        if(!cust) return;
-        let idx = cust.vehicles.findIndex(v => v.vehicleId === vehId);
-        if(idx > -1) cust.vehicles.splice(idx, 1);
-        cust.registeredVehiclesCount = cust.vehicles.length;
-        saveCustomersToLocalStorage();
-        if(currentDetailsCustomer && currentDetailsCustomer.id === cust.id) openDetailsView(cust.id);
+        let allVehicles = loadVehiclesFromLocalStorage();
+        const vehIdx = allVehicles.findIndex(v => v.vehicleId === vehId);
+        
+        if(vehIdx === -1) {
+            showAlert('Not Found', 'Vehicle not found', 'error');
+            return;
+        
+            const vehicle = allVehicles[vehIdx];
+            const customerId = vehicle.customerId;
+        
+            allVehicles.splice(vehIdx, 1);
+            saveVehiclesToLocalStorage(allVehicles);
+        
+            // Reload customer data to update counts
+            loadCustomersFromLocalStorage();
+            currentSearchResults = [...customers];
+        }
+        
+        if(currentDetailsCustomer && currentDetailsCustomer.id === customerId) openDetailsView(customerId);
         paginateAndRender();
         showAlert('Vehicle deleted', '', 'info');
     };
 
-    window.viewVehicle = (vid) => showAlert('Vehicle', `Details for ${vid}`, 'info');
+    // ========== VIEW VEHICLE DETAILS ==========
+    function getWorkStatusClass(status) {
+        switch(status) {
+            case 'Completed': return 'status-completed';
+            case 'Inprogress': return 'status-inprogress';
+            case 'Quality Check': return 'status-pending';
+            case 'Ready': return 'status-completed';
+            case 'New Request': return 'status-pending';
+            default: return 'status-pending';
+        }
+    }
+
+    window.viewVehicle = function(vehicleId) {
+        // Get vehicle from shared storage
+        const allVehicles = loadVehiclesFromLocalStorage();
+        const vehicle = allVehicles.find(v => v.vehicleId === vehicleId);
+        const ownerCustomer = vehicle ? customers.find(c => c.id === vehicle.customerId) : null;
+
+        if (!vehicle) {
+            showAlert('Not Found', `Vehicle ${vehicleId} not found`, 'error');
+            return;
+        }
+
+        detailsVehicleIdSpan.innerText = vehicleId;
+
+        const normalizeTextValue = (value, fallback = '—') => {
+            const text = String(value ?? '').trim();
+            if (!text || text.toUpperCase() === 'N/A') return fallback;
+            return text;
+        };
+
+        const resolvedCustomerId = normalizeTextValue(ownerCustomer?.id);
+        const resolvedName = normalizeTextValue(ownerCustomer?.name);
+        const resolvedMobile = normalizeTextValue(ownerCustomer?.mobile);
+        const resolvedEmail = normalizeTextValue(ownerCustomer?.email);
+        const resolvedAddress = normalizeTextValue(ownerCustomer?.address);
+        const resolvedSince = normalizeTextValue(ownerCustomer?.customerSince);
+
+        const registeredVehiclesCount = ownerCustomer?.registeredVehiclesCount || 0;
+        const completedServicesCount = ownerCustomer?.completedServicesCount || 0;
+
+        const leadSource = ownerCustomer?.leadSource || '';
+        const leadDetails = ownerCustomer?.leadDetails || null;
+
+        let leadInfo = '—';
+        if(leadSource === 'refer' && leadDetails) leadInfo = `Refer by: ${leadDetails.referrerName || ''} (${leadDetails.referrerMobile || ''})`;
+        else if(leadSource === 'social' && leadDetails) leadInfo = `Social: ${leadDetails.platform || ''}`;
+        else if(leadSource === 'other' && leadDetails) leadInfo = `Other: ${leadDetails.otherText || ''}`;
+        else if(leadSource === 'walk-in') leadInfo = 'Walk-in';
+
+        const vehicleCompletedServicesCount = vehicle.completedServices || 0;
+
+        let servicesHtml = '';
+        if (vehicle.services && vehicle.services.length) {
+            vehicle.services.forEach((s, idx) => {
+                servicesHtml += `<tr>
+                    <td class="date-column">${s.createDate || new Date().toLocaleDateString()}</td>
+                    <td>${s.jobCardId || 'JO-' + Date.now().toString().slice(-6)}</td>
+                    <td><span class="order-type-badge ${s.orderType === 'New Job Order' ? 'order-type-new-job' : 'order-type-service'}">${s.orderType || 'Service Order'}</span></td>
+                    <td><span class="status-badge ${getWorkStatusClass(s.workStatus)}">${s.workStatus || 'Completed'}</span></td>
+                    <td><span class="status-badge ${s.paymentStatus === 'Fully Paid' ? 'payment-full' : s.paymentStatus === 'Partially Paid' ? 'payment-partial' : 'payment-unpaid'}">${s.paymentStatus || 'Fully Paid'}</span></td>
+                    <td>QAR ${s.totalCost || '0.00'}</td>
+                    <td>
+                        <button class="btn-action-dropdown" style="min-width: 80px;" onclick="window.viewServiceDetails('${s.jobCardId || ''}', '${vehicleId}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                    </td>
+                </tr>`;
+            });
+        } else {
+            servicesHtml = '<tr><td colspan="7" style="padding:30px;text-align:center;">No service records found</td></tr>';
+        }
+
+        vehicleDetailsGrid.innerHTML = `
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <h3><i class="fas fa-user"></i> Customer Info</h3>
+                </div>
+                <div class="card-content">
+                    <div class="info-item"><span class="info-label">ID</span><span class="info-value">${resolvedCustomerId}</span></div>
+                    <div class="info-item"><span class="info-label">Name</span><span class="info-value">${resolvedName}</span></div>
+                    <div class="info-item"><span class="info-label">Mobile</span><span class="info-value">${resolvedMobile}</span></div>
+                    <div class="info-item"><span class="info-label">Email</span><span class="info-value">${resolvedEmail}</span></div>
+                    <div class="info-item"><span class="info-label">Address</span><span class="info-value">${resolvedAddress}</span></div>
+                    <div class="info-item"><span class="info-label">Since</span><span class="info-value">${resolvedSince}</span></div>
+                    <div class="info-item"><span class="info-label">Lead source</span><span class="info-value">${leadInfo}</span></div>
+                    <div class="info-item"><span class="info-label">Vehicles</span><span class="info-value"><span class="count-badge">${registeredVehiclesCount} vehicles</span></span></div>
+                    <div class="info-item"><span class="info-label">Services</span><span class="info-value"><span class="service-count-badge">${completedServicesCount} services</span></span></div>
+                </div>
+            </div>
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <h3><i class="fas fa-car"></i> Vehicle Information</h3>
+                    <div class="card-header-actions">
+                        <button class="btn-edit-header" onclick="window.openEditVehicleModal('${vehicleId}')"><i class="fas fa-edit"></i> Edit</button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="info-item"><span class="info-label">Vehicle ID</span><span class="info-value">${vehicleId}</span></div>
+                    <div class="info-item"><span class="info-label">Make</span><span class="info-value">${vehicle.make}</span></div>
+                    <div class="info-item"><span class="info-label">Model</span><span class="info-value">${vehicle.model}</span></div>
+                    <div class="info-item"><span class="info-label">Year</span><span class="info-value">${vehicle.year}</span></div>
+                    <div class="info-item"><span class="info-label">Color</span><span class="info-value">${vehicle.color}</span></div>
+                    <div class="info-item"><span class="info-label">Plate Number</span><span class="info-value">${vehicle.plateNumber}</span></div>
+                    <div class="info-item"><span class="info-label">Completed Services</span><span class="info-value"><span class="service-count-badge">${vehicleCompletedServicesCount} services</span></span></div>
+                    <div class="info-item"><span class="info-label">Type</span><span class="info-value">${vehicle.vehicleType || 'N/A'}</span></div>
+                    <div class="info-item"><span class="info-label">VIN</span><span class="info-value">${vehicle.vin || 'N/A'}</span></div>
+                </div>
+            </div>
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <h3><i class="fas fa-tasks"></i> Service History</h3>
+                    <div class="card-header-actions">
+                        <button class="btn-add-header" onclick="window.openAddServiceModal('${vehicleId}')"><i class="fas fa-plus"></i> Add Service</button>
+                    </div>
+                </div>
+                <div style="padding:20px;">
+                    <table class="services-table">
+                        <thead>
+                            <tr><th>Date</th><th>Job ID</th><th>Order Type</th><th>Status</th><th>Payment</th><th>Cost</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>${servicesHtml}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        document.querySelector('.container').style.display = 'none';
+        vehicleDetailsScreen.style.display = 'flex';
+    };
 
     // ========== ALERT HELPERS ==========
     function showAlert(title, msg, type = 'info') {
@@ -525,6 +977,163 @@
         });
     }
 
+    // ========== EDIT VEHICLE FUNCTIONS ==========
+    function renderEditVehicleColorOptions(currentColor = '') {
+        const options = ['<option value="">Select color</option>'];
+        VEHICLE_COLORS.forEach(color => {
+            const selected = color === currentColor ? ' selected' : '';
+            options.push(`<option value="${color}"${selected}>${color}</option>`);
+        });
+        editVehicleColor.innerHTML = options.join('');
+    }
+
+    window.openEditVehicleModal = function(vehicleId) {
+        // Get vehicle from shared storage
+        const allVehicles = loadVehiclesFromLocalStorage();
+        const vehicle = allVehicles.find(v => v.vehicleId === vehicleId);
+
+        if (!vehicle) {
+            showAlert('Not Found', `Vehicle ${vehicleId} not found`, 'error');
+            return;
+        }
+
+        editVehicleId.value = vehicle.vehicleId;
+        renderEditVehicleColorOptions(vehicle.color);
+        editVehiclePlate.value = vehicle.plateNumber;
+        
+        openModal(editVehicleModal);
+    };
+
+    function saveEditVehicle() {
+        const vehicleId = editVehicleId.value;
+        
+        // Get vehicle from shared storage
+        let allVehicles = loadVehiclesFromLocalStorage();
+        const vehicle = allVehicles.find(v => v.vehicleId === vehicleId);
+
+        if (!vehicle) return;
+
+        // Update vehicle details
+        vehicle.color = editVehicleColor.value.trim();
+        vehicle.plateNumber = editVehiclePlate.value.trim();
+
+        // Save to shared storage
+        saveVehiclesToLocalStorage(allVehicles);
+        
+        closeModal(editVehicleModal);
+        
+            // Reload customer data to update any counts
+            loadCustomersFromLocalStorage();
+        currentSearchResults = [...customers];
+        
+        // Refresh vehicle details view if open
+        if (vehicleDetailsScreen.style.display === 'flex') {
+            window.viewVehicle(vehicleId);
+            paginateAndRender();
+        }
+        
+        showAlert('Success', 'Vehicle updated successfully', 'success');
+    }
+
+    // ========== SERVICE FUNCTIONS ==========
+    window.openAddServiceModal = function(vehicleId) {
+        serviceVehicleId.value = vehicleId;
+        // Set default values
+        serviceOrderType.value = 'Service Order';
+        serviceWorkStatus.value = 'New Request';
+        servicePaymentStatus.value = 'Unpaid';
+        serviceCost.value = '';
+        openModal(addServiceModal);
+    };
+
+    function saveNewService() {
+        const vehicleId = serviceVehicleId.value;
+        
+        // Get vehicle from shared storage
+        let allVehicles = loadVehiclesFromLocalStorage();
+        const vehicle = allVehicles.find(v => v.vehicleId === vehicleId);
+
+        if (!vehicle) return;
+
+        if (!serviceCost.value) {
+            showAlert('Error', 'Please enter the service cost', 'error');
+            return;
+        }
+
+        const newService = {
+            createDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + 
+                        new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            jobCardId: 'JO-' + Date.now().toString().slice(-6),
+            orderType: serviceOrderType.value,
+            workStatus: serviceWorkStatus.value,
+            paymentStatus: servicePaymentStatus.value,
+            totalCost: parseFloat(serviceCost.value).toFixed(2)
+        };
+
+        if (!vehicle.services) vehicle.services = [];
+        vehicle.services.push(newService);
+        vehicle.completedServices = vehicle.services.length;
+
+        // Save to shared storage
+        saveVehiclesToLocalStorage(allVehicles);
+        
+        closeModal(addServiceModal);
+        
+            // Reload customer data to update counts
+            loadCustomersFromLocalStorage();
+            currentSearchResults = [...customers];
+        
+        // Refresh vehicle details view if open
+        if (vehicleDetailsScreen.style.display === 'flex') {
+            window.viewVehicle(vehicleId);
+        }
+        
+        paginateAndRender();
+        showAlert('Success', 'Service record added', 'success');
+    }
+
+    window.viewServiceDetails = (jobCardId, vehicleId) => {
+        // Get vehicle and service from shared storage
+        const allVehicles = loadVehiclesFromLocalStorage();
+        const vehicle = allVehicles.find(v => v.vehicleId === vehicleId);
+        const service = vehicle?.services?.find(s => s.jobCardId === jobCardId);
+
+        if (!vehicle || !service) return;
+
+        serviceDetailsContent.innerHTML = `
+            <div class="service-detail-item">
+                <span class="service-detail-label">Job Card ID:</span>
+                <span class="service-detail-value">${service.jobCardId}</span>
+            </div>
+            <div class="service-detail-item">
+                <span class="service-detail-label">Date:</span>
+                <span class="service-detail-value">${service.createDate}</span>
+            </div>
+            <div class="service-detail-item">
+                <span class="service-detail-label">Order Type:</span>
+                <span class="service-detail-value"><span class="order-type-badge ${service.orderType === 'New Job Order' ? 'order-type-new-job' : 'order-type-service'}">${service.orderType}</span></span>
+            </div>
+            <div class="service-detail-item">
+                <span class="service-detail-label">Work Status:</span>
+                <span class="service-detail-value"><span class="status-badge ${getWorkStatusClass(service.workStatus)}">${service.workStatus}</span></span>
+            </div>
+            <div class="service-detail-item">
+                <span class="service-detail-label">Payment Status:</span>
+                <span class="service-detail-value"><span class="status-badge ${service.paymentStatus === 'Fully Paid' ? 'payment-full' : service.paymentStatus === 'Partially Paid' ? 'payment-partial' : 'payment-unpaid'}">${service.paymentStatus}</span></span>
+            </div>
+            <div class="service-detail-item">
+                <span class="service-detail-label">Total Cost:</span>
+                <span class="service-detail-value"><strong>QAR ${service.totalCost}</strong></span>
+            </div>
+            <div class="service-detail-item">
+                <span class="service-detail-label">Vehicle:</span>
+                <span class="service-detail-value">${vehicle.make} ${vehicle.model} (${vehicle.plateNumber})</span>
+            </div>
+        `;
+
+        openModal(serviceDetailsModal);
+    };
+
     // Expose globally needed functions
     window.showAlert = showAlert; 
     window.showConfirm = showConfirm;
@@ -536,4 +1145,7 @@
     window.deleteVehicle = deleteVehicle;
     window.toggleDropdown = window.toggleDropdown;
     window.openDetailsView = window.openDetailsView;
+    window.openEditVehicleModal = window.openEditVehicleModal;
+    window.openAddServiceModal = window.openAddServiceModal;
+    window.viewServiceDetails = window.viewServiceDetails;
 })();

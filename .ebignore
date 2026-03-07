@@ -1,0 +1,7 @@
+.git
+.gitignore
+*.md
+README.md
+*.ps1
+query
+node_modules

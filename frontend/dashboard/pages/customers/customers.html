@@ -75,6 +75,17 @@
     <div class="details-body" id="detailsBody"><div class="details-grid" id="detailsGrid"></div></div>
 </div>
 
+<!-- VEHICLE DETAILS SCREEN -->
+<div class="details-screen" id="vehicleDetailsScreen">
+    <div class="details-header">
+        <h2><i class="fas fa-car"></i> Vehicle Details – <span id="detailsVehicleId"></span></h2>
+        <button class="btn-close-details" id="closeVehicleDetailsScreen"><i class="fas fa-times"></i> Close Details</button>
+    </div>
+    <div class="details-body" id="vehicleDetailsBody">
+        <div class="details-grid" id="vehicleDetailsGrid"></div>
+    </div>
+</div>
+
 <!-- ADD CUSTOMER MODAL with lead source -->
 <div class="modal" id="addCustomerModal">
     <div class="modal-content">
@@ -142,15 +153,112 @@
         <div class="modal-header"><h3 class="modal-title"><i class="fas fa-car"></i> Add Vehicle</h3><button class="close-modal" id="closeVehicleModalBtn">&times;</button></div>
         <form id="addVehicleForm">
             <input type="hidden" id="vehicleCustomerId">
-            <div class="form-group"><label>Make *</label><input type="text" id="vehicleMake" class="form-control" required></div>
-            <div class="form-group"><label>Model *</label><input type="text" id="vehicleModel" class="form-control" required></div>
-            <div class="form-group"><label>Year *</label><input type="number" id="vehicleYear" class="form-control" min="1900" max="2030" required></div>
+            <div class="form-group"><label>Make *</label><select id="vehicleMake" class="form-control" required><option value="">Select make</option></select></div>
+            <div class="form-group"><label>Model *</label><select id="vehicleModel" class="form-control" required disabled><option value="">Select make first</option></select></div>
+            <div class="form-group"><label>Year *</label><select id="vehicleYear" class="form-control" required><option value="">Select year</option></select></div>
             <div class="form-group"><label>Type *</label><select id="vehicleType" class="form-control"><option value="">Select</option><option value="SUV">SUV</option><option value="Sedan">Sedan</option><option value="Hatchback">Hatchback</option></select></div>
-            <div class="form-group"><label>Color *</label><input type="text" id="vehicleColor" class="form-control" required></div>
+            <div class="form-group"><label>Color *</label><select id="vehicleColor" class="form-control" required><option value="">Select color</option></select></div>
             <div class="form-group"><label>Plate Number *</label><input type="text" id="vehiclePlate" class="form-control" required></div>
             <div class="form-group"><label>VIN (optional)</label><input type="text" id="vehicleVin" maxlength="17" class="form-control"></div>
             <div class="button-group"><button type="button" class="btn btn-success" id="saveVehicleBtn">Save Vehicle</button><button type="button" class="btn btn-secondary" id="cancelVehicleModalBtn">Cancel</button></div>
         </form>
+    </div>
+</div>
+
+<!-- EDIT VEHICLE MODAL -->
+<div class="modal" id="editVehicleModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-edit"></i> Edit Vehicle</h3>
+            <button class="close-modal" id="closeEditVehicleModalBtn">&times;</button>
+        </div>
+        <form id="editVehicleForm">
+            <input type="hidden" id="editVehicleId">
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Color</label>
+                    <select id="editVehicleColor" class="form-control">
+                        <option value="">Select color</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Plate Number</label>
+                    <input type="text" id="editVehiclePlate" class="form-control">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn btn-primary" id="saveEditVehicleBtn">Save Changes</button>
+                <button type="button" class="btn btn-secondary" id="cancelEditVehicleModalBtn">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ADD SERVICE MODAL -->
+<div class="modal" id="addServiceModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-tasks"></i> Add Service Record</h3>
+            <button class="close-modal" id="closeServiceModalBtn">&times;</button>
+        </div>
+        <form id="addServiceForm">
+            <input type="hidden" id="serviceVehicleId">
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Order Type</label>
+                    <select id="serviceOrderType" class="form-control">
+                        <option value="New Job Order">New Job Order</option>
+                        <option value="Service Order">Service Order</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Work Status</label>
+                    <select id="serviceWorkStatus" class="form-control">
+                        <option value="New Request">New Request</option>
+                        <option value="Inprogress">In Progress</option>
+                        <option value="Quality Check">Quality Check</option>
+                        <option value="Ready">Ready</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Payment Status</label>
+                    <select id="servicePaymentStatus" class="form-control">
+                        <option value="Unpaid">Unpaid</option>
+                        <option value="Partially Paid">Partially Paid</option>
+                        <option value="Fully Paid">Fully Paid</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Total Cost (QAR)</label>
+                    <input type="number" id="serviceCost" class="form-control" step="0.01" min="0">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn btn-success" id="saveServiceBtn">Add Service</button>
+                <button type="button" class="btn btn-secondary" id="cancelServiceModalBtn">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- VIEW SERVICE DETAILS MODAL -->
+<div class="modal" id="serviceDetailsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-info-circle"></i> Service Details</h3>
+            <button class="close-modal" id="closeServiceDetailsBtn">&times;</button>
+        </div>
+        <div id="serviceDetailsContent" class="service-details-content">
+            <!-- Dynamic content will be inserted here -->
+        </div>
     </div>
 </div>
 
